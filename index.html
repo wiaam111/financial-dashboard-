@@ -1,11 +1,5 @@
+<!-- v2 -->
 <!DOCTYPE html>
-<script type="application/json" id="cowork-artifact-meta">
-{
-  "name": "Peek Coffee Dashboard",
-  "schemaVersion": 1,
-  "description": "The Peak Coffee Shop — Sales Intelligence Dashboard with Jan–June 2026 actual data + POS discount analysis (Jan–Mar, June)"
-}
-</script>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -60,6 +54,21 @@ body{background:#f5f5f4;color:var(--text);font-size:13px;}
 .tab:hover{border-color:var(--gold);color:var(--gold);}
 .tab.active{background:var(--green);border-color:var(--green);color:#fff;}
 
+/* Page-level tabs (Sales / Spending) and Sales sub-view tabs (Overview / Revenue /
+   Discounts / Log) — same class name can't be reused (setMonth() targets .tab by
+   querySelectorAll and would strip these tabs' active state on every month click),
+   so these are separate classes, but every property below is copied verbatim from
+   .tab / .tab:hover / .tab.active so they render pixel-identical to the Month tabs. */
+.page-tab-bar{display:flex;gap:6px;margin-bottom:16px;}
+.page-tab{padding:5px 14px;border-radius:4px;border:1.5px solid var(--border);background:var(--cream2);color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.3px;transition:.15s;font-family:inherit;}
+.page-tab:hover{border-color:var(--gold);color:var(--gold);}
+.page-tab.active{background:var(--green);border-color:var(--green);color:#fff;}
+
+.sales-view-tab-bar{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.view-tab{padding:5px 14px;border-radius:4px;border:1.5px solid var(--border);background:var(--cream2);color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.3px;transition:.15s;font-family:inherit;}
+.view-tab:hover{border-color:var(--gold);color:var(--gold);}
+.view-tab.active{background:var(--green);border-color:var(--green);color:#fff;}
+
 /* Section label */
 .section-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;}
 
@@ -71,6 +80,12 @@ body{background:#f5f5f4;color:var(--text);font-size:13px;}
 .kpi-label{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;}
 .kpi-value{font-size:21px;font-weight:700;color:var(--green);line-height:1;letter-spacing:-.3px;}
 .kpi-sub{font-size:10px;color:var(--muted);margin-top:4px;font-weight:500;}
+.kpi-grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+@media(max-width:1100px){.kpi-grid-5{grid-template-columns:repeat(2,1fr);}}
+/* Note: deliberately no .kpi.gold/.turq/.green/.red accent rules — the original
+   .kpi card is always plain white with a fixed --green value color regardless of
+   the (dead, pre-existing) cls passed by renderKPIs()/renderSpendKPIs(). Kept that
+   exact original behavior rather than inventing a new accent-border convention. */
 
 
 /* Cards */
@@ -97,6 +112,8 @@ body{background:#f5f5f4;color:var(--text);font-size:13px;}
 /* Insights */
 .insights{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:16px;}
 @media(max-width:900px){.insights{grid-template-columns:1fr;}}
+.insights-4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:900px){.insights-4{grid-template-columns:1fr;}}
 .insight{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;border-left:3px solid var(--gold);}
 .insight.green-accent{border-left-color:var(--green);}
 .insight.turq-accent{border-left-color:var(--turq);}
@@ -196,6 +213,12 @@ body{background:#f5f5f4;color:var(--text);font-size:13px;}
 
 <div class="main">
 
+  <!-- Page tabs -->
+  <div class="page-tab-bar">
+    <button class="page-tab active" data-page="sales" onclick="setPage('sales')">Sales</button>
+    <button class="page-tab" data-page="spending" onclick="setPage('spending')">Spending</button>
+  </div>
+
   <!-- Filters -->
   <div class="filter-bar">
     <span class="fl">Month</span>
@@ -207,6 +230,19 @@ body{background:#f5f5f4;color:var(--text);font-size:13px;}
     <button class="tab" onclick="setMonth('May')">May</button>
     <button class="tab" onclick="setMonth('June')">June</button>
   </div>
+  <div style="font-size:10px;color:var(--muted);font-style:italic;margin-bottom:16px;">Month filter applies to the Sales tab only — Spending is a fixed Jan–May 2026 snapshot.</div>
+
+  <div id="page-sales">
+
+  <!-- Sales sub-view tabs -->
+  <div class="sales-view-tab-bar">
+    <button class="view-tab active" data-view="overview" onclick="setSalesView('overview')">Overview</button>
+    <button class="view-tab" data-view="revenue" onclick="setSalesView('revenue')">Revenue Charts</button>
+    <button class="view-tab" data-view="discounts" onclick="setSalesView('discounts')">POS Discount Analysis</button>
+    <button class="view-tab" data-view="log" onclick="setSalesView('log')">Daily Transaction Log</button>
+  </div>
+
+  <div id="sales-view-overview">
 
   <!-- POS Summary Band -->
   <div class="pos-banner" id="pos-banner">
@@ -223,6 +259,14 @@ body{background:#f5f5f4;color:var(--text);font-size:13px;}
   <!-- KPIs -->
   <div class="section-label">Key Performance Indicators</div>
   <div class="kpi-grid" id="kpi-grid"></div>
+
+  <!-- Insights -->
+  <div class="section-label">Business Insights</div>
+  <div class="insights" id="insights"></div>
+
+  </div><!-- /#sales-view-overview -->
+
+  <div id="sales-view-revenue" style="display:none">
 
   <!-- Row 1: Monthly + Payment -->
   <div class="section-label">Revenue Overview</div>
@@ -250,6 +294,10 @@ body{background:#f5f5f4;color:var(--text);font-size:13px;}
     </div>
   </div>
 
+  </div><!-- /#sales-view-revenue -->
+
+  <div id="sales-view-discounts" style="display:none">
+
   <!-- Row 3: Discount chart (Jan-Mar POS) -->
   <div class="section-label">POS Discount Analysis <span style="font-size:8px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0" id="pos-analysis-note"> · months with POS data</span></div>
   <div class="chart-grid-3">
@@ -267,9 +315,9 @@ body{background:#f5f5f4;color:var(--text);font-size:13px;}
     </div>
   </div>
 
-  <!-- Insights -->
-  <div class="section-label">Business Insights</div>
-  <div class="insights" id="insights"></div>
+  </div><!-- /#sales-view-discounts -->
+
+  <div id="sales-view-log" style="display:none">
 
   <!-- Table -->
   <div class="section-label">Daily Transaction Log</div>
@@ -277,6 +325,41 @@ body{background:#f5f5f4;color:var(--text);font-size:13px;}
     <div class="month-picker" id="table-month-picker"></div>
     <div id="daily-table"></div>
   </div>
+
+  </div><!-- /#sales-view-log -->
+
+  </div><!-- /#page-sales -->
+
+  <!-- ══ BUSINESS SPENDING & CASH FLOW ══════════════════════════════════ -->
+  <div id="page-spending" style="display:none">
+  <div class="section-label" style="margin-top:8px">Business Spending &amp; Cash Flow <span style="font-size:8px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">· from bank statement (OpTransactionHistory) · fixed Jan–May 2026 snapshot, independent of the Month filter above</span></div>
+  <div class="kpi-grid-5" id="spend-kpi-grid"></div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Monthly Income vs. Spending</div>
+      <div class="chart-wrap h260"><canvas id="chart-spend-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Spending by Category (Top 5 + Other)</div>
+      <div class="chart-wrap h260"><canvas id="chart-spend-category"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-label">Where Spending Is Running Hot</div>
+  <div class="insights insights-4" id="spend-flags"></div>
+
+  <div class="section-label">Spending by Category — Full Breakdown</div>
+  <div class="table-section">
+    <div id="spend-category-table"></div>
+  </div>
+
+  <div class="section-label">Largest Individual Transactions <span style="font-size:8px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">· top 30 by amount, Jan–May 2026</span></div>
+  <div class="table-section">
+    <div id="spend-txn-table"></div>
+  </div>
+
+  </div><!-- /#page-spending -->
 
 </div>
 
@@ -654,6 +737,17 @@ function renderTable(m){
     style:{table:{'font-size':'11px'},th:{'background':G.green,'color':'#fff','font-size':'9px','text-transform':'uppercase','letter-spacing':'0.7px','font-weight':'800'},td:{'color':G.teal}}
   }).render(document.getElementById('daily-table'));
 }
+function setSalesView(view){
+  ['overview','revenue','discounts','log'].forEach(v=>{
+    const el = document.getElementById('sales-view-'+v);
+    if(el) el.style.display = (v===view) ? '' : 'none';
+  });
+  document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active', t.dataset.view===view));
+  // Same zero-width-canvas concern as the page-level Sales/Spending switch: force
+  // a resize now that this sub-view's charts are actually visible.
+  requestAnimationFrame(()=>Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }));
+}
+
 function initPicker(){
   document.getElementById('table-month-picker').innerHTML=MONTHS.map(m=>{
     const hasPOS=MONTHLY[m].hasPOS;
@@ -664,6 +758,10 @@ function initPicker(){
 function renderAll(){
   renderKPIs();renderMonthlyChart();renderPaymentChart();renderDailyChart();renderSplitChart();renderGrossNetChart();renderDiscountChart();renderDiscRateChart();renderInsights();
   if(document.getElementById('pl-kpis')){renderPLKPIs();renderPLChart();renderExpenseChart();renderBalanceChart();renderExpenseTable();}
+  // Charts may have just been (re)created inside a currently-hidden sales sub-view
+  // (see setSalesView) — force a resize once they're actually visible so Chart.js
+  // doesn't lock in a zero-width canvas from a display:none ancestor.
+  requestAnimationFrame(()=>Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }));
 }
 
 initPicker();
@@ -850,6 +948,194 @@ function renderExpenseTable() {
 <script defer>
 renderAll();
 renderTable('January');
+</script>
+
+<script defer>
+// ══ BUSINESS SPENDING & CASH FLOW (bank statement categorization) ══════════
+// Source: OpTransactionHistoryUX528 (same 5 monthly bank statement files behind
+// the January–May figures in MONTHLY above). 202 transactions total, Jan–May 2026.
+// This section is a fixed period snapshot and does NOT respond to the Month
+// filter at the top of the page — the category-level totals below are only
+// available as a Jan–May aggregate in the source data, not broken out by month.
+
+const SPEND_MONTHS = ['January','February','March','April','May'];
+const SPEND_INCOME  = {January:1515.96, February:1093.93, March:1276.84, April:2053.61, May:2062.53};
+const SPEND_EXPENSE = {January:4566.59, February:827.50,  March:888.47,  April:3320.07, May:1435.86};
+
+const SPEND_TOTAL_SPENT  = 11038.49;
+const SPEND_TOTAL_INCOME = 8002.86;
+const SPEND_NET_CASHFLOW = +(SPEND_TOTAL_INCOME - SPEND_TOTAL_SPENT).toFixed(2); // -3035.63
+const SPEND_EXPENSE_TXNS = 101;
+const SPEND_DEPOSIT_TXNS = 101;
+const SPEND_TOTAL_TXNS   = 202;
+
+const SPEND_CATEGORIES = [
+  {name:'Bonuses',                     amount:3000.00},
+  {name:'Payroll',                     amount:2054.20},
+  {name:'Equipment & Furnishings',     amount:1477.57},
+  {name:'Ingredients & Raw Materials', amount:1190.21},
+  {name:'Groceries & Supplies',        amount:912.16},
+  {name:'Dining & Cafe Purchases',     amount:891.59},
+  {name:'International Payments',      amount:578.55},
+  {name:'Travel & Tickets',            amount:423.10},
+  {name:'POS Terminal Fees',           amount:210.00},
+  {name:'Utilities & Bills',           amount:154.61},
+  {name:'Marketing',                   amount:100.00},
+  {name:'Bank Fees',                   amount:30.00},
+  {name:'Other Expenses',              amount:13.00},
+  {name:'Delivery & Shipping',         amount:2.00},
+  {name:'Taxes (VAT)',                 amount:1.50}
+];
+
+const SPEND_FLAGS = [
+  {cat:'Equipment & Furnishings',     amount:1477.57, color:G.teal,  note:'Mostly a one-time April splurge — new furniture and heaters (~OMR 1,442 in a single month). Not a recurring drain, but worth budgeting for separately next time so it doesn\'t blindside cash flow.'},
+  {cat:'Ingredients & Raw Materials', amount:1190.21, color:G.turq,  note:'Your biggest true cost-of-goods category. Reasonable for a cafe, but it crept up in April (OMR 570) — worth checking if portion sizes or supplier prices shifted.'},
+  {cat:'Groceries & Supplies',        amount:912.16,  color:G.green, note:'Spiked hard in May (OMR 437 vs ~OMR 130–215 in other months) — worth a quick look at what drove that month.'},
+  {cat:'Dining & Cafe Purchases',     amount:891.59,  color:G.gold,  note:'Steady OMR 120–235/month buying from other cafes — if this is for research or staff, fine, but it adds up to nearly OMR 900 over 5 months.'}
+];
+
+const TRANSACTIONS = [
+  {date:'01/01/2026', desc:'Transfer bonus MOHD AL RIYAMI LFT26001KTDNWD8M', cat:'Bonuses', amount:1500.000},
+  {date:'01/01/2026', desc:'Transfer bonus AL MUHANNAD AHMED HARITH ALNABHANI LFT260013FLG731D', cat:'Bonuses', amount:1500.000},
+  {date:'29/04/2026', desc:'Transfer furniture seating area AL MUHANNAD AHMED HARITH ALNABHANI LFT', cat:'Equipment & Furnishings', amount:768.571},
+  {date:'19/04/2026', desc:'Transfer heaters AL MUHANNAD AHMED HARITH ALNABHANI LFT26109NR93N63L', cat:'Equipment & Furnishings', amount:450.000},
+  {date:'01/01/2026', desc:'Transfer 1010001920B26728 MONTHLY SALARY 211866934851920.030001', cat:'Payroll', amount:440.000},
+  {date:'01/03/2026', desc:'Transfer 3010005690B49990 MONTHLY SALARY 212452646349205.010001', cat:'Payroll', amount:420.000},
+  {date:'05/05/2026', desc:'Transfer 05050003124B1372 MONTHLY SALARY 213109352944822.030001', cat:'Payroll', amount:410.000},
+  {date:'01/04/2026', desc:'Transfer 4010002430B75890 MONTHLY SALARY 212767856648491.020001', cat:'Payroll', amount:400.000},
+  {date:'09/02/2026', desc:'Transfer 2090002131B78879 LATE SALARY PAYMENT 212253220744724.010001', cat:'Payroll', amount:330.000},
+  {date:'10/05/2026', desc:'Transfer Coffee machine CROWN MUSCAT INERNATIONAL SPC LFT261303XYHRS3J', cat:'Groceries & Supplies', amount:310.000},
+  {date:'03/05/2026', desc:'SWIFT Outward Payment United Arab Emirates cris and jo general trading', cat:'International Payments', amount:289.283},
+  {date:'12/04/2026', desc:'SWIFT Outward Payment United Arab Emirates cris and jo general trading', cat:'International Payments', amount:289.267},
+  {date:'01/04/2026', desc:'ACH Direct Credit Payment 1450 Empire Production FT26091883270009', cat:'Ingredients & Raw Materials', amount:200.000},
+  {date:'11/01/2026', desc:'Transfer ticket bonny AJRAS SIDAB TRADING LFT26011C2SSNYJ4', cat:'Travel & Tickets', amount:200.000},
+  {date:'07/04/2026', desc:'ACH Direct Credit Payment 2596745 Desserts guy zahil FT26097468975589', cat:'Ingredients & Raw Materials', amount:173.900},
+  {date:'13/04/2026', desc:'Transfer stones 165 AL MUHANNAD AHMED HARITH ALNABHANI LFT2610359P36LR', cat:'Equipment & Furnishings', amount:165.000},
+  {date:'19/01/2026', desc:'Transfer ticket AL MUHANNAD AHMED HARITH ALNABHANI LFT26019CQ2GM4Z1', cat:'Travel & Tickets', amount:142.101},
+  {date:'08/01/2026', desc:'ACH Direct Credit Payment 1388 Riyadh Aljabal Alakhdhar FT260085943168', cat:'Ingredients & Raw Materials', amount:125.652},
+  {date:'26/04/2026', desc:'POS 661804-SWEET SALT 512.114,240.000@0.00100000 213015307705846.02000', cat:'Dining & Cafe Purchases', amount:114.240},
+  {date:'06/01/2026', desc:'POS 473449-EL CAFE 512.113,000.000@0.00100000 211918678355294.030001', cat:'Dining & Cafe Purchases', amount:113.000},
+  {date:'10/03/2026', desc:'ACH Direct Credit Payment 2596745 Desserts guy zahil FT26069569540952', cat:'Ingredients & Raw Materials', amount:110.700},
+  {date:'25/05/2026', desc:'Transfer Desserts sweet salt AL MUHANNAD AHMED HARITH ALNABHANI LFT261', cat:'Dining & Cafe Purchases', amount:109.452},
+  {date:'12/04/2026', desc:'Transfer 4 month pos AL KAYS INTERNATIONAL LLC LFT261023HJY8JFN', cat:'POS Terminal Fees', amount:105.000},
+  {date:'03/02/2026', desc:'ACH Direct Credit Payment 1450 Empire Production FT26034039616283', cat:'Ingredients & Raw Materials', amount:100.000},
+  {date:'01/03/2026', desc:'ACH Direct Credit Payment 1450 Empire Production FT26060432001150', cat:'Ingredients & Raw Materials', amount:100.000},
+  {date:'06/01/2026', desc:'Transfer marketing AL MUHANNAD AHMED HARITH ALNABHANI LFT26006YNZMSJLK', cat:'Marketing', amount:100.000},
+  {date:'28/04/2026', desc:'Transfer bills MOHD AL RIYAMI LFT26118YGBY864B', cat:'Utilities & Bills', amount:98.100},
+  {date:'19/04/2026', desc:'Transfer cakes AL MUHANNAD AHMED HARITH ALNABHANI LFT26109JCSVFQW5', cat:'Ingredients & Raw Materials', amount:95.760},
+  {date:'19/01/2026', desc:'Transfer ticket AJRAS SIDAB TRADING LFT260194C932QFJ', cat:'Travel & Tickets', amount:81.000},
+  {date:'03/05/2026', desc:'POS 076780-SWEET SALT 512.75,600.000@0.00100000 213065591157520.030001', cat:'Dining & Cafe Purchases', amount:75.600}
+];
+
+function renderSpendKPIs(){
+  const netStr = SPEND_NET_CASHFLOW < 0 ? '('+omr(Math.abs(SPEND_NET_CASHFLOW))+')' : omr(SPEND_NET_CASHFLOW);
+  document.getElementById('spend-kpi-grid').innerHTML=[
+    {l:'Total Spent',            v:omr(SPEND_TOTAL_SPENT),   s:SPEND_EXPENSE_TXNS+' expense transactions', cls:'red'},
+    {l:'Income (Card Deposits)', v:omr(SPEND_TOTAL_INCOME),  s:SPEND_DEPOSIT_TXNS+' deposits',              cls:'turq'},
+    {l:'Net Cash Flow',          v:netStr,                   s:'Deposits minus spending',                   cls:SPEND_NET_CASHFLOW<0?'red':'green'},
+    {l:'Biggest Category',       v:SPEND_CATEGORIES[0].name, s:omr(SPEND_CATEGORIES[0].amount)+' ('+(SPEND_CATEGORIES[0].amount/SPEND_TOTAL_SPENT*100).toFixed(1)+'% of spend)', cls:'gold'},
+    {l:'Bank Transactions',      v:SPEND_TOTAL_TXNS,         s:'Jan–May 2026',                              cls:''}
+  ].map(k=>`<div class="kpi ${k.cls}"><div class="kpi-label">${k.l}</div><div class="kpi-value" style="font-size:17px">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('');
+}
+
+function renderSpendMonthlyChart(){
+  const ctx=document.getElementById('chart-spend-monthly').getContext('2d');
+  new Chart(ctx,{
+    type:'bar',
+    data:{labels:SPEND_MONTHS,datasets:[
+      {label:'Income (Card Deposits)',data:SPEND_MONTHS.map(m=>SPEND_INCOME[m]),backgroundColor:'rgba(20,112,102,0.8)',borderRadius:4},
+      {label:'Spending',data:SPEND_MONTHS.map(m=>SPEND_EXPENSE[m]),backgroundColor:'rgba(185,74,44,0.65)',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:10},color:G.teal}},tooltip:{callbacks:{label:c=>' '+c.dataset.label+': OMR '+fmt(c.raw)}}},
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:10},color:G.teal}},x:{ticks:{font:{size:11},color:G.teal}}}}
+  });
+}
+
+function renderSpendCategoryChart(){
+  const top5 = SPEND_CATEGORIES.slice(0,5);
+  const otherTotal = SPEND_CATEGORIES.slice(5).reduce((s,c)=>s+c.amount,0);
+  const labels = [...top5.map(c=>c.name), 'Other (10 categories)'];
+  const values = [...top5.map(c=>c.amount), otherTotal];
+  // Colors are all pulled from hues already used elsewhere in this file — the
+  // last one ('Other') reuses the muted grey from renderDiscRateChart's palette
+  // (rgba(90,90,90,0.7)) rather than introducing a new hex not seen anywhere else.
+  const colors = [G.gold, G.green, G.teal, G.turq, '#b94a2c', '#5a5a5a'];
+  const ctx = document.getElementById('chart-spend-category').getContext('2d');
+  new Chart(ctx,{
+    type:'doughnut',
+    data:{labels,datasets:[{data:values,backgroundColor:colors,borderWidth:3,borderColor:'#fff',hoverOffset:8}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'right',labels:{boxWidth:12,font:{size:10},padding:10,color:G.teal}},
+        tooltip:{callbacks:{label:c=>' '+c.label+': OMR '+fmt(c.raw)+' ('+(c.raw/SPEND_TOTAL_SPENT*100).toFixed(1)+'%)'}}}}
+  });
+}
+
+function renderSpendFlags(){
+  document.getElementById('spend-flags').innerHTML = SPEND_FLAGS.map(f=>`
+    <div class="insight" style="border-left-color:${f.color}">
+      <div class="insight-label">${f.cat}</div>
+      <div class="insight-value">OMR ${fmt(f.amount)}</div>
+      <div class="insight-desc">${f.note}</div>
+    </div>`).join('');
+}
+
+function renderSpendCategoryTable(){
+  const thStyle = `background:#f0efed;color:#57534e;padding:8px 10px;font-size:9px;text-transform:uppercase;letter-spacing:.7px;font-weight:700;border-bottom:1px solid #e0d8cc;text-align:left;`;
+  const tHead = `<tr><th style="${thStyle}border-radius:4px 0 0 0">Category</th><th style="${thStyle}text-align:right">Amount</th><th style="${thStyle}text-align:right">% of Spend</th><th style="${thStyle}border-radius:0 4px 0 0">Share</th></tr>`;
+  const rows = SPEND_CATEGORIES.map(c=>{
+    const pct = c.amount/SPEND_TOTAL_SPENT*100;
+    const barPct = (c.amount/SPEND_CATEGORIES[0].amount*100).toFixed(1);
+    return `<tr>
+      <td style="padding:7px 10px;font-size:11px;font-weight:600;border-bottom:1px solid rgba(0,0,0,.04);color:${G.teal}">${c.name}</td>
+      <td style="padding:7px 10px;font-size:11px;font-weight:700;border-bottom:1px solid rgba(0,0,0,.04);text-align:right;color:${G.green}">OMR ${fmt(c.amount)}</td>
+      <td style="padding:7px 10px;font-size:11px;font-weight:600;border-bottom:1px solid rgba(0,0,0,.04);text-align:right;color:${G.teal}">${pct.toFixed(1)}%</td>
+      <td style="padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.04);"><div style="background:var(--cream);border-radius:4px;height:7px;width:100%;overflow:hidden"><div style="height:100%;border-radius:4px;background:${G.gold};width:${barPct}%"></div></div></td>
+    </tr>`;
+  }).join('');
+  const totalRow = `<tr><td style="padding:8px 10px;font-size:11px;font-weight:800;background:rgba(201,148,26,.06);color:${G.teal}">── Total ──</td><td style="padding:8px 10px;font-size:11px;font-weight:800;background:rgba(201,148,26,.06);text-align:right;color:${G.green}">OMR ${fmt(SPEND_TOTAL_SPENT)}</td><td style="padding:8px 10px;font-size:11px;font-weight:800;background:rgba(201,148,26,.06);text-align:right;color:${G.teal}">100.0%</td><td style="padding:8px 10px;background:rgba(201,148,26,.06);"></td></tr>`;
+  document.getElementById('spend-category-table').innerHTML = `<table style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden">${tHead}<tbody>${rows}${totalRow}</tbody></table>`;
+}
+
+function renderSpendTransactions(){
+  const rows = TRANSACTIONS.map(t=>[t.date, t.desc, t.cat, 'OMR '+fmt(t.amount)]);
+  new gridjs.Grid({
+    columns:[
+      {name:'Date',width:'90px'},
+      {name:'Description'},
+      {name:'Category',width:'190px'},
+      {name:'Amount',width:'100px'}
+    ],
+    data:rows,pagination:{limit:10},sort:true,
+    style:{table:{'font-size':'11px'},th:{'background':G.green,'color':'#fff','font-size':'9px','text-transform':'uppercase','letter-spacing':'0.7px','font-weight':'800'},td:{'color':G.teal}}
+  }).render(document.getElementById('spend-txn-table'));
+}
+
+// Each call is isolated so a slow/blocked CDN (Chart.js or gridjs) can't take
+// down the sections that don't depend on it (KPIs, flags, category table).
+// The two Chart.js canvases are rendered lazily (see setPage below) because the
+// Spending tab starts hidden (display:none) — creating a chart in a hidden
+// container gives it zero width, so we wait until the tab is actually shown.
+[renderSpendKPIs, renderSpendFlags, renderSpendCategoryTable, renderSpendTransactions].forEach(fn => {
+  try { fn(); } catch(e) { console.error(fn.name, 'failed:', e); }
+});
+
+let spendChartsRendered = false;
+function setPage(page){
+  document.getElementById('page-sales').style.display = page==='sales' ? '' : 'none';
+  document.getElementById('page-spending').style.display = page==='spending' ? '' : 'none';
+  document.querySelectorAll('.page-tab').forEach(t=>t.classList.toggle('active', t.dataset.page===page));
+  if(page==='spending' && !spendChartsRendered){
+    spendChartsRendered = true;
+    try { renderSpendMonthlyChart(); } catch(e) { console.error('renderSpendMonthlyChart failed:', e); }
+    try { renderSpendCategoryChart(); } catch(e) { console.error('renderSpendCategoryChart failed:', e); }
+  }
+  if(page==='sales'){
+    // Safety net: force the sales-tab Chart.js instances to recompute their size
+    // in case the browser's ResizeObserver didn't catch the display:none→block flip.
+    requestAnimationFrame(()=>Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }));
+  }
+}
 </script>
 
 <!-- ── UPLOAD MODAL ─────────────────────────────────────────── -->
