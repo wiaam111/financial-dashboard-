@@ -1,0 +1,1881 @@
+<!-- v5 — Profit & Cash view + MoM arrows; exact brand palette; negatives signalled in brand gold (#cc990d) instead of red -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Peak Coffee Shop — Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous" defer></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/theme/mermaid.min.css" integrity="sha384-jZvDSsmGB9oGGT/4l9bHXGoAv1OxvG/cFmSo0dZaSqmBgvQTKDBFAMftlXTmMbNW" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/gridjs@5.0.2/dist/gridjs.umd.js" integrity="sha384-/XXDzxe4FsGiAe50i/u9pY/Vy/uX654MHB1xoc1BJNnH1WXHhqHga9g3q5tF4gj7" crossorigin="anonymous" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+<style>
+:root {
+  color-scheme: light;
+  --green:  #0b260f;
+  --gold:   #cc990d;
+  --teal:   #0d3339;
+  --turq:   #147066;
+  --cream:  #ede4d0;
+  --cream2: #f5ede0;
+  --white:  #ffffff;
+  --text:   #1a1a1a;
+  --muted:  #5c5244;
+  --border: #d8cdb8;
+  --shadow: none;
+  --r: 10px;
+  font-family: 'Montserrat','Trebuchet MS','Gill Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#f5f5f4;color:var(--text);font-size:13px;}
+
+/* Header */
+.header{background:var(--green);display:flex;align-items:stretch;min-height:70px;}
+.header-gold-bar{width:10px;background:var(--gold);flex-shrink:0;}
+.header-body{flex:1;display:flex;align-items:center;padding:14px 22px;gap:16px;}
+.brand-mark{flex-shrink:0;opacity:.9;}
+.header-text h1{font-size:18px;font-weight:800;color:#fff;letter-spacing:.5px;text-transform:uppercase;}
+.header-text p{font-size:10px;color:rgba(255,255,255,.55);margin-top:2px;letter-spacing:.3px;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.logo-script{font-size:20px;color:var(--gold);font-style:italic;font-family:Georgia,serif;letter-spacing:1px;opacity:.9;}
+.header-badge{background:var(--gold);color:var(--green);font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:5px 14px;border-radius:20px;}
+
+
+/* Sub-bar */
+.sub-bar{background:var(--teal);padding:7px 22px;display:flex;align-items:center;gap:10px;}
+.sub-bar span{font-size:10px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.8px;}
+.sub-bar .dot{width:4px;height:4px;background:var(--gold);border-radius:50%;}
+
+.main{padding:18px 22px;max-width:1400px;margin:0 auto;}
+
+/* Filters */
+.filter-bar{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.fl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-right:6px;}
+.tab{padding:5px 14px;border-radius:4px;border:1.5px solid var(--border);background:var(--cream2);color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.3px;transition:.15s;font-family:inherit;}
+.tab:hover{border-color:var(--gold);color:var(--gold);}
+.tab.active{background:var(--green);border-color:var(--green);color:#fff;}
+
+/* Page-level tabs (Sales / Spending) and Sales sub-view tabs (Overview / Revenue /
+   Discounts / Log) — same class name can't be reused (setMonth() targets .tab by
+   querySelectorAll and would strip these tabs' active state on every month click),
+   so these are separate classes, but every property below is copied verbatim from
+   .tab / .tab:hover / .tab.active so they render pixel-identical to the Month tabs. */
+.page-tab-bar{display:flex;gap:6px;margin-bottom:16px;}
+.page-tab{padding:5px 14px;border-radius:4px;border:1.5px solid var(--border);background:var(--cream2);color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.3px;transition:.15s;font-family:inherit;}
+.page-tab:hover{border-color:var(--gold);color:var(--gold);}
+.page-tab.active{background:var(--green);border-color:var(--green);color:#fff;}
+
+.sales-view-tab-bar{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.view-tab{padding:5px 14px;border-radius:4px;border:1.5px solid var(--border);background:var(--cream2);color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.3px;transition:.15s;font-family:inherit;}
+.view-tab:hover{border-color:var(--gold);color:var(--gold);}
+.view-tab.active{background:var(--green);border-color:var(--green);color:#fff;}
+
+/* Section label */
+.section-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;}
+
+/* KPIs */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px;}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;}
+
+.kpi-label{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;}
+.kpi-value{font-size:21px;font-weight:700;color:var(--green);line-height:1;letter-spacing:-.3px;}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:4px;font-weight:500;}
+.kpi-grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px;}
+@media(max-width:1100px){.kpi-grid-5{grid-template-columns:repeat(2,1fr);}}
+/* Profit & Cash KPI grid — same .kpi card component as the rest of the dashboard
+   (plain white, --green value, no accent border), just a 6-up track. */
+.fin-kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:16px;}
+@media(max-width:1100px){.fin-kpi-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:640px){.fin-kpi-grid{grid-template-columns:repeat(2,1fr);}}
+/* One-time list rows — reuse the .stat-row/table divider language (1px --border). */
+.fin-onetime-row{display:flex;align-items:center;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--border);}
+.fin-onetime-row:last-child{border-bottom:none;}
+/* Reconciliation table — identical th/td treatment to renderExpenseTable() so it
+   reads as the same table component (numbers right-aligned, tabular figures). */
+.recon-table{width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;}
+.recon-table th{background:#f0efed;color:#57534e;padding:8px 10px;font-size:9px;text-transform:uppercase;letter-spacing:.7px;font-weight:700;border-bottom:1px solid #e0d8cc;text-align:right;}
+.recon-table th:first-child{text-align:left;}
+.recon-table td{padding:7px 10px;font-size:11px;font-weight:500;border-bottom:1px solid rgba(0,0,0,.04);text-align:right;font-variant-numeric:tabular-nums;}
+.recon-table td:first-child{text-align:left;font-weight:600;color:var(--teal);}
+.recon-table tr.total-row td{font-weight:800;background:rgba(204,153,13,.06);border-top:1.5px solid var(--border);color:var(--teal);}
+.recon-neg{color:var(--gold);}
+.recon-pos{color:var(--turq);}
+/* Note: deliberately no .kpi.gold/.turq/.green/.red accent rules — the original
+   .kpi card is always plain white with a fixed --green value color regardless of
+   the (dead, pre-existing) cls passed by renderKPIs()/renderSpendKPIs(). Kept that
+   exact original behavior rather than inventing a new accent-border convention. */
+
+
+/* Cards */
+.chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:11px;margin-bottom:16px;}
+.chart-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-bottom:16px;}
+@media(max-width:900px){.chart-grid,.chart-grid-3{grid-template-columns:1fr;}}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;}
+.card-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;}
+.chart-wrap{position:relative;}
+.h260{height:260px;} .h220{height:220px;} .h180{height:180px;}
+.stat-row{display:flex;justify-content:space-around;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.stat-item{text-align:center;}
+.stat-val{font-size:13px;font-weight:800;color:var(--gold);}
+.stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;font-weight:600;}
+
+/* POS banner */
+.pos-banner{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:16px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;}
+.pos-stat{text-align:center;}
+.pos-val{font-size:16px;font-weight:800;color:var(--turq);}
+.pos-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-top:2px;}
+.pos-note{font-size:10px;color:var(--muted);margin-left:auto;font-style:italic;}
+.pos-divider{width:1px;background:rgba(20,112,102,.2);align-self:stretch;}
+
+/* Insights */
+.insights{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:16px;}
+@media(max-width:900px){.insights{grid-template-columns:1fr;}}
+.insights-4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:900px){.insights-4{grid-template-columns:1fr;}}
+.insight{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;border-left:3px solid var(--gold);}
+.insight.green-accent{border-left-color:var(--green);}
+.insight.turq-accent{border-left-color:var(--turq);}
+.insight-icon{font-size:22px;margin-bottom:5px;}
+.insight-label{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;margin-bottom:3px;}
+.insight-value{font-size:20px;font-weight:800;color:var(--green);letter-spacing:-.3px;margin-bottom:3px;}
+.insight-desc{font-size:11px;color:var(--muted);line-height:1.5;font-weight:500;}
+
+/* Table */
+.table-section{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;}
+.month-picker{display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap;}
+.mpick{padding:4px 11px;border-radius:4px;border:1.5px solid var(--border);background:var(--cream);cursor:pointer;font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--muted);font-family:inherit;text-transform:uppercase;}
+.mpick.active{background:var(--teal);border-color:var(--teal);color:#fff;}
+.pos-tag{font-size:9px;background:rgba(20,112,102,.12);color:var(--turq);border-radius:10px;padding:1px 6px;margin-left:4px;font-weight:700;}
+
+.gridjs-thead th{background:#f0efed !important;color:#57534e !important;font-size:9px !important;text-transform:uppercase;letter-spacing:.7px;font-family:inherit;font-weight:700 !important;border-bottom:1px solid #e0d8cc !important;}
+.gridjs-tr:nth-child(even) td{background:var(--cream);}
+.gridjs-td{font-size:11px !important;}
+
+.footer{background:var(--green);color:rgba(255,255,255,.4);font-size:10px;text-align:center;padding:12px 22px;font-weight:500;letter-spacing:.3px;}
+.footer strong{color:var(--gold);}
+
+/* Upload button */
+.upload-btn{background:transparent;border:1.5px solid rgba(204,153,13,.7);color:var(--gold);font-size:11px;font-weight:800;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;letter-spacing:.5px;transition:.15s;}
+.upload-btn:hover{background:var(--gold);color:var(--green);}
+.pdf-btn{background:transparent;border:1.5px solid rgba(255,255,255,.25);color:rgba(255,255,255,.7);font-size:11px;font-weight:800;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;letter-spacing:.5px;transition:.15s;}
+.pdf-btn:hover{background:rgba(255,255,255,.1);color:#fff;}
+@media print{.pdf-btn,.upload-btn,.modal-overlay{display:none!important;}body{background:#fff!important;}.card,.kpi,.insight,.pos-banner,.table-section{box-shadow:none!important;break-inside:avoid;}}
+
+/* Modal overlay */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(13,51,57,.55);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:16px;width:520px;max-width:95vw;box-shadow:0 4px 24px rgba(0,0,0,.12);border:1px solid #e0d8cc;overflow:hidden;}
+.modal-head{background:var(--green);padding:18px 22px;display:flex;align-items:center;justify-content:space-between;}
+.modal-head h2{color:#fff;font-size:14px;font-weight:800;letter-spacing:.5px;margin:0;}
+.modal-head p{color:rgba(255,255,255,.55);font-size:10px;margin:3px 0 0;letter-spacing:.3px;}
+.modal-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;}
+.modal-close:hover{color:#fff;}
+.modal-body{padding:22px;}
+
+/* Drop zone */
+.dropzone{border:2px dashed var(--border);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:.2s;background:var(--cream2);position:relative;}
+.dropzone.drag-over{border-color:var(--gold);background:rgba(204,153,13,.07);}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.dz-icon{font-size:32px;margin-bottom:10px;}
+.dz-title{font-size:13px;font-weight:800;color:var(--green);margin-bottom:5px;}
+.dz-sub{font-size:10px;color:var(--muted);}
+.dz-types{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;}
+.dz-type{background:var(--cream);border:1px solid var(--border);border-radius:4px;padding:3px 9px;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+
+/* File list */
+.file-list{margin-top:14px;display:flex;flex-direction:column;gap:6px;}
+.file-item{display:flex;align-items:center;gap:10px;background:var(--cream2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;}
+.file-icon{font-size:16px;flex-shrink:0;}
+.file-info{flex:1;min-width:0;}
+.file-name{font-size:11px;font-weight:700;color:var(--green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-type{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.file-status{font-size:10px;font-weight:700;flex-shrink:0;}
+.file-status.ok{color:var(--turq);}
+.file-status.err{color:var(--red);}
+.file-status.pending{color:var(--gold);}
+
+/* Progress / result */
+.upload-result{margin-top:14px;border-radius:8px;padding:12px 14px;font-size:11px;line-height:1.7;display:none;}
+.upload-result.success{background:rgba(20,112,102,.08);border:1px solid rgba(20,112,102,.3);color:#0d3339;}
+.upload-result.error{background:rgba(185,74,44,.07);border:1px solid rgba(185,74,44,.25);color:#7a2012;}
+
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+.btn-cancel{background:none;border:1.5px solid var(--border);color:var(--muted);padding:8px 18px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;}
+.btn-process{background:var(--green);color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:800;font-family:inherit;letter-spacing:.4px;}
+.btn-process:disabled{opacity:.4;cursor:not-allowed;}
+.btn-process.loading::after{content:' …';}
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-gold-bar"></div>
+  <div class="header-body">
+    <svg class="brand-mark" width="50" height="34" viewBox="0 0 50 34" fill="none">
+      <polyline points="2,32 13,9 21,21 29,7 39,19 48,3" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+      <polyline points="2,32 13,9 21,21 29,7 39,19 48,3" stroke="#cc990d" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 3" opacity="0.5"/>
+    </svg>
+    <div class="header-text">
+      <h1>The Peak</h1>
+      <p>Sales Intelligence Dashboard &nbsp;·&nbsp; January – June 2026 &nbsp;·&nbsp; Sama Hotel, Nizwa &nbsp;·&nbsp; OMR</p>
+    </div>
+    <div class="header-right">
+      <div class="logo-script">the peak</div>
+      <button class="pdf-btn" onclick="window.print()">⬇ Export PDF</button><button class="pdf-btn" id="export-all-btn" onclick="exportMonthlyPDFs()">⬇ Export Each Month (PDF)</button><button class="upload-btn" onclick="openUpload()">⬆ Upload Data</button>
+    </div>
+  </div>
+  
+</div>
+
+
+<div class="main">
+
+  <!-- Page tabs -->
+  <div class="page-tab-bar">
+    <button class="page-tab active" data-page="sales" onclick="setPage('sales')">Sales</button>
+    <button class="page-tab" data-page="spending" onclick="setPage('spending')">Spending</button>
+    <button class="page-tab" data-page="profit" onclick="setPage('profit')">Profit &amp; Cash</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <span class="fl">Month</span>
+    <button class="tab active" onclick="setMonth('All')">All</button>
+    <button class="tab" onclick="setMonth('January')">January</button>
+    <button class="tab" onclick="setMonth('February')">February</button>
+    <button class="tab" onclick="setMonth('March')">March</button>
+    <button class="tab" onclick="setMonth('April')">April</button>
+    <button class="tab" onclick="setMonth('May')">May</button>
+    <button class="tab" onclick="setMonth('June')">June</button>
+  </div>
+  <div style="font-size:10px;color:var(--muted);font-style:italic;margin-bottom:16px;">Month filter applies to the Sales tab only — Spending is a fixed Jan–May 2026 snapshot.</div>
+
+  <div id="page-sales">
+
+  <!-- Sales sub-view tabs -->
+  <div class="sales-view-tab-bar">
+    <button class="view-tab active" data-view="overview" onclick="setSalesView('overview')">Overview</button>
+    <button class="view-tab" data-view="revenue" onclick="setSalesView('revenue')">Revenue Charts</button>
+    <button class="view-tab" data-view="discounts" onclick="setSalesView('discounts')">POS Discount Analysis</button>
+    <button class="view-tab" data-view="log" onclick="setSalesView('log')">Daily Transaction Log</button>
+  </div>
+
+  <div id="sales-view-overview">
+
+  <!-- POS Summary Band -->
+  <div class="pos-banner" id="pos-banner">
+    <div class="pos-stat"><div class="pos-val">OMR 4,986.10</div><div class="pos-lbl">Gross Sub-Total (Jan–Mar)</div></div>
+    <div class="pos-divider"></div>
+    <div class="pos-stat"><div class="pos-val">OMR 142.28</div><div class="pos-lbl">Total Discounts Given</div></div>
+    <div class="pos-divider"></div>
+    <div class="pos-stat"><div class="pos-val">OMR 4,843.82</div><div class="pos-lbl">Net After Discounts</div></div>
+    <div class="pos-divider"></div>
+    <div class="pos-stat"><div class="pos-val">2.85%</div><div class="pos-lbl">Avg Discount Rate</div></div>
+    <div class="pos-note">📋 POS data covers Jan–Mar · Apr–May from monthly cash reports</div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="section-label">Key Performance Indicators</div>
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <!-- Insights -->
+  <div class="section-label">Business Insights</div>
+  <div class="insights" id="insights"></div>
+
+  </div><!-- /#sales-view-overview -->
+
+  <div id="sales-view-revenue" style="display:none">
+
+  <!-- Row 1: Monthly + Payment -->
+  <div class="section-label">Revenue Overview</div>
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Monthly Revenue</div>
+      <div class="chart-wrap h260"><canvas id="chart-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Payment Method Split</div>
+      <div class="chart-wrap h220"><canvas id="chart-payment"></canvas></div>
+      <div class="stat-row" id="payment-stats"></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Daily + Split -->
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Daily Sales Trend</div>
+      <div class="chart-wrap h260"><canvas id="chart-daily"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Revenue vs Purchases</div>
+      <div class="chart-wrap h260"><canvas id="chart-split"></canvas></div>
+    </div>
+  </div>
+
+  </div><!-- /#sales-view-revenue -->
+
+  <div id="sales-view-discounts" style="display:none">
+
+  <!-- Row 3: Discount chart (Jan-Mar POS) -->
+  <div class="section-label">POS Discount Analysis <span style="font-size:8px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0" id="pos-analysis-note"> · months with POS data</span></div>
+  <div class="chart-grid-3">
+    <div class="card">
+      <div class="card-title" id="gross-net-title">Gross vs Net Sales</div>
+      <div class="chart-wrap h180"><canvas id="chart-gross-net"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="daily-disc-title">Daily Discounts (Jan–Mar)</div>
+      <div class="chart-wrap h180"><canvas id="chart-discounts"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Discount Rate by Month</div>
+      <div class="chart-wrap h180"><canvas id="chart-disc-rate"></canvas></div>
+    </div>
+  </div>
+
+  </div><!-- /#sales-view-discounts -->
+
+  <div id="sales-view-log" style="display:none">
+
+  <!-- Table -->
+  <div class="section-label">Daily Transaction Log</div>
+  <div class="table-section">
+    <div class="month-picker" id="table-month-picker"></div>
+    <div id="daily-table"></div>
+  </div>
+
+  </div><!-- /#sales-view-log -->
+
+  </div><!-- /#page-sales -->
+
+  <!-- ══ BUSINESS SPENDING & CASH FLOW ══════════════════════════════════ -->
+  <div id="page-spending" style="display:none">
+  <div class="section-label" style="margin-top:8px">Business Spending &amp; Cash Flow <span style="font-size:8px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">· from bank statement (OpTransactionHistory) · fixed Jan–May 2026 snapshot, independent of the Month filter above</span></div>
+  <div class="kpi-grid-5" id="spend-kpi-grid"></div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Monthly Income vs. Spending</div>
+      <div class="chart-wrap h260"><canvas id="chart-spend-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Spending by Category (Top 5 + Other)</div>
+      <div class="chart-wrap h260"><canvas id="chart-spend-category"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-label">Where Spending Is Running Hot</div>
+  <div class="insights insights-4" id="spend-flags"></div>
+
+  <div class="section-label">Spending by Category — Full Breakdown</div>
+  <div class="table-section">
+    <div id="spend-category-table"></div>
+  </div>
+
+  <div class="section-label">Largest Individual Transactions <span style="font-size:8px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">· top 30 by amount, Jan–May 2026</span></div>
+  <div class="table-section">
+    <div id="spend-txn-table"></div>
+  </div>
+
+  </div><!-- /#page-spending -->
+
+  <!-- ══ PROFITABILITY & CASH FLOW ═══════════════════════════════════════ -->
+  <div id="page-profit" style="display:none">
+
+  <div class="section-label" style="margin-top:8px">Profitability &amp; Cash Flow
+    <span style="font-size:8px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0"> · sales (POS / cash reports) vs bank operating spend · Jan–May 2026 overlap window · figures unaudited</span>
+  </div>
+
+  <div class="pos-banner" style="border-left:3px solid var(--gold);display:block">
+    <div style="font-size:11.5px;color:var(--muted);line-height:1.65;">
+      <strong style="color:var(--green)">The underlying shop is profitable.</strong> Across Jan–May, recurring operating spend (OMR 6,560.92) ran well below sales (OMR 9,343.11) — a recurring surplus of about <strong style="color:var(--turq)">OMR 2,782 (~30%)</strong>. The cumulative gap on the books comes from one-time items: owner bonuses (OMR 3,000, paid 1 Jan) and April furnishings &amp; equipment (OMR 1,477.57), not day-to-day trading.
+    </div>
+  </div>
+
+  <div class="section-label">Key Figures <span style="font-size:8px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">· Jan–May 2026</span></div>
+  <div class="fin-kpi-grid" id="fin-kpi-grid"></div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Sales vs Operating Spend — Monthly (Jan–May)</div>
+      <div class="chart-wrap h260"><canvas id="chart-fin-sales-spend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Recurring vs One-Time Spend</div>
+      <div class="chart-wrap h220"><canvas id="chart-fin-split"></canvas></div>
+      <div class="stat-row" id="fin-split-stats"></div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Bank Balance — Actual Cash Position (Jan–June)</div>
+      <div class="chart-wrap h260"><canvas id="chart-fin-balance"></canvas></div>
+      <div style="font-size:9.5px;color:var(--muted);font-style:italic;margin-top:8px;line-height:1.5">Actual bank closing balance each month. Note: card deposits alone (OMR 8,003) fell short of bank spend (OMR 11,038) over Jan–May, yet the balance held roughly flat — meaning cash sales &amp; other deposits (not just card) also funded the account.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">One-Time Items Stripped Out</div>
+      <div id="fin-onetime"></div>
+    </div>
+  </div>
+
+  <!-- Card reconciliation -->
+  <div class="section-label" style="margin-top:4px">Card Reconciliation <span style="font-size:8px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">· POS card sales vs bank card deposits · Jan–May 2026</span></div>
+  <div class="pos-banner" id="fin-recon-banner" style="display:block"></div>
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Card Sales vs Bank Deposits — Monthly</div>
+      <div class="chart-wrap h220"><canvas id="chart-fin-recon"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Reconciliation Detail</div>
+      <div id="fin-recon-table"></div>
+    </div>
+  </div>
+
+  </div><!-- /#page-profit -->
+
+</div>
+
+<div class="footer">
+  <strong>The Peak Coffee Shop</strong> &nbsp;·&nbsp; Sama Hotel, Al-Jabal Al-Akhadhar, Nizwa &nbsp;·&nbsp;
+  Coffee Sale Monthly Reports + POS Sales Summary 2026 &nbsp;·&nbsp; Jan–June actual figures
+</div>
+
+<script defer>
+// ── DAILY DATA (Coffee Sale files — all 6 months) ─────────────────────────
+const DAILY=[
+{"date":"2026-01-01","month":"January","cash":8.4,"credit":84.0,"total":92.4,"purchase":31.45,"net":60.95,"sub_total":92.4,"discount":0},
+{"date":"2026-01-02","month":"January","cash":17.6,"credit":152.5,"total":170.1,"purchase":0,"net":170.1,"sub_total":170.1,"discount":0},
+{"date":"2026-01-03","month":"January","cash":14.8,"credit":56.54,"total":71.34,"purchase":0,"net":71.34,"sub_total":72.0,"discount":0.86},
+{"date":"2026-01-04","month":"January","cash":0,"credit":39.36,"total":39.36,"purchase":8.7,"net":30.66,"sub_total":41.6,"discount":2.24},
+{"date":"2026-01-05","month":"January","cash":25.26,"credit":46.9,"total":72.16,"purchase":39.2,"net":32.96,"sub_total":74.4,"discount":2.24},
+{"date":"2026-01-06","month":"January","cash":13.2,"credit":24.04,"total":37.24,"purchase":0,"net":37.24,"sub_total":37.9,"discount":0.66},
+{"date":"2026-01-07","month":"January","cash":2.0,"credit":45.28,"total":47.28,"purchase":0,"net":47.28,"sub_total":50.6,"discount":3.32},
+{"date":"2026-01-08","month":"January","cash":11.8,"credit":107.08,"total":118.88,"purchase":21.0,"net":97.88,"sub_total":119.6,"discount":0.72},
+{"date":"2026-01-09","month":"January","cash":80.6,"credit":0,"total":80.6,"purchase":23.5,"net":57.1,"sub_total":81.0,"discount":0.4},
+{"date":"2026-01-10","month":"January","cash":11.3,"credit":40.94,"total":52.24,"purchase":0,"net":52.24,"sub_total":53.3,"discount":1.06},
+{"date":"2026-01-11","month":"January","cash":3.8,"credit":38.88,"total":42.68,"purchase":9.1,"net":33.58,"sub_total":43.7,"discount":1.02},
+{"date":"2026-01-12","month":"January","cash":1.9,"credit":39.54,"total":41.44,"purchase":26.1,"net":15.34,"sub_total":46.2,"discount":4.76},
+{"date":"2026-01-13","month":"January","cash":3.4,"credit":13.4,"total":16.8,"purchase":0,"net":16.8,"sub_total":16.8,"discount":0},
+{"date":"2026-01-14","month":"January","cash":25.3,"credit":0,"total":25.3,"purchase":0,"net":25.3,"sub_total":25.3,"discount":0},
+{"date":"2026-01-15","month":"January","cash":23.6,"credit":74.34,"total":97.94,"purchase":0,"net":97.94,"sub_total":99.2,"discount":1.26},
+{"date":"2026-01-16","month":"January","cash":16.8,"credit":90.64,"total":107.44,"purchase":17.05,"net":90.39,"sub_total":107.8,"discount":0.36},
+{"date":"2026-01-17","month":"January","cash":4.4,"credit":54.24,"total":58.64,"purchase":0,"net":58.64,"sub_total":59.9,"discount":1.26},
+{"date":"2026-01-18","month":"January","cash":10.2,"credit":64.48,"total":74.68,"purchase":28.7,"net":45.98,"sub_total":76.2,"discount":1.54},
+{"date":"2026-01-19","month":"January","cash":1.0,"credit":15.24,"total":16.24,"purchase":3.0,"net":13.24,"sub_total":17.4,"discount":1.16},
+{"date":"2026-01-20","month":"January","cash":10.7,"credit":22.5,"total":33.2,"purchase":7.0,"net":26.2,"sub_total":33.7,"discount":0.5},
+{"date":"2026-01-21","month":"January","cash":11.3,"credit":32.56,"total":43.86,"purchase":14.2,"net":29.66,"sub_total":47.5,"discount":3.62},
+{"date":"2026-01-22","month":"January","cash":14.2,"credit":27.74,"total":41.94,"purchase":11.8,"net":30.14,"sub_total":42.3,"discount":0.36},
+{"date":"2026-01-23","month":"January","cash":10.5,"credit":28.72,"total":39.22,"purchase":0,"net":39.22,"sub_total":40.7,"discount":1.48},
+{"date":"2026-01-24","month":"January","cash":8.4,"credit":62.64,"total":71.04,"purchase":0,"net":71.04,"sub_total":75.2,"discount":4.16},
+{"date":"2026-01-25","month":"January","cash":5.92,"credit":46.48,"total":52.4,"purchase":2.0,"net":50.4,"sub_total":57.3,"discount":4.9},
+{"date":"2026-01-26","month":"January","cash":9.0,"credit":55.94,"total":64.94,"purchase":18.0,"net":46.94,"sub_total":65.3,"discount":0.36},
+{"date":"2026-01-27","month":"January","cash":16.78,"credit":42.9,"total":59.68,"purchase":14.7,"net":44.98,"sub_total":61.1,"discount":1.42},
+{"date":"2026-01-28","month":"January","cash":29.5,"credit":47.28,"total":76.78,"purchase":30.0,"net":46.78,"sub_total":78.9,"discount":2.12},
+{"date":"2026-01-29","month":"January","cash":16.5,"credit":69.38,"total":85.88,"purchase":30.52,"net":55.36,"sub_total":86.6,"discount":0.72},
+{"date":"2026-01-30","month":"January","cash":13.2,"credit":75.4,"total":88.6,"purchase":0,"net":88.6,"sub_total":88.6,"discount":0},
+{"date":"2026-01-31","month":"January","cash":26.14,"credit":97.1,"total":123.24,"purchase":0,"net":123.24,"sub_total":128.6,"discount":5.36},
+{"date":"2026-02-01","month":"February","cash":15.0,"credit":34.2,"total":49.2,"purchase":14.7,"net":34.5,"sub_total":49.5,"discount":0.3},
+{"date":"2026-02-02","month":"February","cash":10.4,"credit":51.56,"total":61.96,"purchase":19.1,"net":42.86,"sub_total":63.1,"discount":1.14},
+{"date":"2026-02-03","month":"February","cash":14.2,"credit":41.02,"total":55.22,"purchase":0,"net":55.22,"sub_total":56.1,"discount":0.88},
+{"date":"2026-02-04","month":"February","cash":25.4,"credit":22.4,"total":47.8,"purchase":14.3,"net":33.5,"sub_total":51.5,"discount":3.7},
+{"date":"2026-02-05","month":"February","cash":4.7,"credit":43.34,"total":48.04,"purchase":2.6,"net":45.44,"sub_total":49.4,"discount":1.36},
+{"date":"2026-02-06","month":"February","cash":19.5,"credit":85.5,"total":105.0,"purchase":0,"net":105.0,"sub_total":105.0,"discount":0},
+{"date":"2026-02-07","month":"February","cash":19.26,"credit":0,"total":19.26,"purchase":11.0,"net":8.26,"sub_total":22.3,"discount":3.04},
+{"date":"2026-02-08","month":"February","cash":6.3,"credit":35.08,"total":41.36,"purchase":0,"net":41.36,"sub_total":42.4,"discount":1.04},
+{"date":"2026-02-09","month":"February","cash":13.9,"credit":46.78,"total":60.68,"purchase":6.4,"net":54.28,"sub_total":61.3,"discount":0.62},
+{"date":"2026-02-10","month":"February","cash":7.4,"credit":17.5,"total":24.9,"purchase":0,"net":24.9,"sub_total":26.1,"discount":1.2},
+{"date":"2026-02-11","month":"February","cash":21.1,"credit":47.6,"total":68.7,"purchase":28.8,"net":39.9,"sub_total":68.7,"discount":0},
+{"date":"2026-02-12","month":"February","cash":9.3,"credit":51.4,"total":60.7,"purchase":0,"net":60.7,"sub_total":60.7,"discount":0},
+{"date":"2026-02-13","month":"February","cash":10.3,"credit":78.0,"total":88.3,"purchase":12.8,"net":75.5,"sub_total":88.3,"discount":0},
+{"date":"2026-02-14","month":"February","cash":6.6,"credit":30.78,"total":37.38,"purchase":0,"net":37.38,"sub_total":38.5,"discount":1.12},
+{"date":"2026-02-15","month":"February","cash":5.9,"credit":25.44,"total":31.34,"purchase":0,"net":31.34,"sub_total":32.6,"discount":1.26},
+{"date":"2026-02-16","month":"February","cash":8.8,"credit":8.94,"total":17.74,"purchase":13.5,"net":4.24,"sub_total":18.1,"discount":0.36},
+{"date":"2026-02-17","month":"February","cash":19.44,"credit":37.26,"total":56.7,"purchase":0,"net":56.7,"sub_total":60.0,"discount":3.3},
+{"date":"2026-02-18","month":"February","cash":16.7,"credit":20.32,"total":37.02,"purchase":5.6,"net":31.42,"sub_total":38.2,"discount":1.18},
+{"date":"2026-02-19","month":"February","cash":29.4,"credit":61.3,"total":90.7,"purchase":28.25,"net":62.45,"sub_total":92.6,"discount":1.9},
+{"date":"2026-02-20","month":"February","cash":25.8,"credit":36.7,"total":62.5,"purchase":0,"net":62.5,"sub_total":62.5,"discount":0},
+{"date":"2026-02-21","month":"February","cash":4.3,"credit":9.0,"total":13.3,"purchase":0,"net":13.3,"sub_total":13.3,"discount":0},
+{"date":"2026-02-22","month":"February","cash":16.6,"credit":23.9,"total":40.5,"purchase":5.9,"net":34.6,"sub_total":40.5,"discount":0},
+{"date":"2026-02-23","month":"February","cash":31.3,"credit":9.1,"total":40.4,"purchase":0,"net":40.4,"sub_total":40.4,"discount":0},
+{"date":"2026-02-24","month":"February","cash":12.0,"credit":35.0,"total":47.0,"purchase":6.4,"net":40.6,"sub_total":47.0,"discount":0},
+{"date":"2026-02-25","month":"February","cash":7.8,"credit":19.4,"total":27.2,"purchase":8.1,"net":19.1,"sub_total":27.2,"discount":0},
+{"date":"2026-02-26","month":"February","cash":14.9,"credit":0,"total":14.9,"purchase":0,"net":14.9,"sub_total":15.6,"discount":0.7},
+{"date":"2026-02-27","month":"February","cash":19.1,"credit":52.3,"total":71.4,"purchase":0,"net":71.4,"sub_total":71.4,"discount":0},
+{"date":"2026-02-28","month":"February","cash":16.7,"credit":36.8,"total":53.5,"purchase":17.4,"net":36.1,"sub_total":53.5,"discount":0},
+{"date":"2026-03-01","month":"March","cash":4.0,"credit":35.3,"total":39.3,"purchase":0,"net":39.3,"sub_total":39.3,"discount":0},
+{"date":"2026-03-02","month":"March","cash":15.6,"credit":12.3,"total":27.9,"purchase":0,"net":27.9,"sub_total":27.9,"discount":0},
+{"date":"2026-03-03","month":"March","cash":1.5,"credit":6.7,"total":8.2,"purchase":0,"net":8.2,"sub_total":8.2,"discount":0},
+{"date":"2026-03-04","month":"March","cash":16.3,"credit":22.66,"total":38.96,"purchase":9.32,"net":29.64,"sub_total":40.2,"discount":1.24},
+{"date":"2026-03-05","month":"March","cash":33.2,"credit":0,"total":33.2,"purchase":0,"net":33.2,"sub_total":33.6,"discount":0.4},
+{"date":"2026-03-06","month":"March","cash":3.8,"credit":28.72,"total":32.52,"purchase":0,"net":32.52,"sub_total":37.9,"discount":5.38},
+{"date":"2026-03-07","month":"March","cash":6.4,"credit":10.52,"total":16.92,"purchase":9.1,"net":7.82,"sub_total":17.3,"discount":0.38},
+{"date":"2026-03-08","month":"March","cash":17.74,"credit":0,"total":17.74,"purchase":0,"net":17.74,"sub_total":18.8,"discount":1.06},
+{"date":"2026-03-09","month":"March","cash":10.1,"credit":0,"total":10.1,"purchase":0,"net":10.1,"sub_total":10.1,"discount":0},
+{"date":"2026-03-11","month":"March","cash":9.1,"credit":33.92,"total":43.02,"purchase":18.8,"net":24.22,"sub_total":43.52,"discount":0.5},
+{"date":"2026-03-12","month":"March","cash":11.0,"credit":0,"total":11.0,"purchase":0,"net":11.0,"sub_total":44.6,"discount":1.58},
+{"date":"2026-03-13","month":"March","cash":5.5,"credit":31.62,"total":37.12,"purchase":0,"net":37.12,"sub_total":38.2,"discount":1.08},
+{"date":"2026-03-14","month":"March","cash":15.74,"credit":0,"total":15.74,"purchase":0,"net":15.74,"sub_total":17.6,"discount":1.86},
+{"date":"2026-03-15","month":"March","cash":3.4,"credit":0,"total":3.4,"purchase":0,"net":3.4,"sub_total":3.8,"discount":0.4},
+{"date":"2026-03-16","month":"March","cash":10.42,"credit":0,"total":10.42,"purchase":11.4,"net":-0.98,"sub_total":10.7,"discount":0.28},
+{"date":"2026-03-17","month":"March","cash":47.5,"credit":0,"total":47.5,"purchase":0,"net":47.5,"sub_total":47.5,"discount":0},
+{"date":"2026-03-18","month":"March","cash":14.2,"credit":21.54,"total":35.74,"purchase":0,"net":35.74,"sub_total":37.2,"discount":1.46},
+{"date":"2026-03-19","month":"March","cash":8.7,"credit":60.3,"total":69.0,"purchase":42.22,"net":26.78,"sub_total":69.0,"discount":0},
+{"date":"2026-03-20","month":"March","cash":9.9,"credit":89.24,"total":99.14,"purchase":0,"net":99.14,"sub_total":106.7,"discount":7.56},
+{"date":"2026-03-21","month":"March","cash":66.42,"credit":221.72,"total":288.14,"purchase":20.55,"net":267.59,"sub_total":295.9,"discount":7.76},
+{"date":"2026-03-22","month":"March","cash":48.56,"credit":131.98,"total":180.54,"purchase":0,"net":180.54,"sub_total":194.4,"discount":13.86},
+{"date":"2026-03-23","month":"March","cash":12.0,"credit":46.5,"total":58.5,"purchase":0,"net":58.5,"sub_total":61.0,"discount":2.5},
+{"date":"2026-03-24","month":"March","cash":7.6,"credit":53.12,"total":60.72,"purchase":0,"net":60.72,"sub_total":65.3,"discount":4.58},
+{"date":"2026-03-25","month":"March","cash":4.0,"credit":27.46,"total":31.46,"purchase":46.3,"net":-14.84,"sub_total":35.3,"discount":3.84},
+{"date":"2026-03-26","month":"March","cash":4.7,"credit":36.42,"total":41.12,"purchase":13.6,"net":27.52,"sub_total":42.0,"discount":0.88},
+{"date":"2026-03-27","month":"March","cash":29.02,"credit":0,"total":29.02,"purchase":0,"net":29.02,"sub_total":32.2,"discount":3.18},
+{"date":"2026-03-28","month":"March","cash":10.0,"credit":40.28,"total":50.28,"purchase":0,"net":50.28,"sub_total":53.9,"discount":3.62},
+{"date":"2026-03-29","month":"March","cash":3.0,"credit":36.78,"total":39.78,"purchase":0,"net":39.78,"sub_total":42.2,"discount":2.42},
+{"date":"2026-03-30","month":"March","cash":36.6,"credit":0,"total":36.6,"purchase":8.35,"net":28.25,"sub_total":41.2,"discount":4.4},
+{"date":"2026-03-31","month":"March","cash":0.2,"credit":14.3,"total":14.5,"purchase":0,"net":14.5,"sub_total":15.6,"discount":1.1},
+{"date":"2026-04-01","month":"April","cash":11.3,"credit":0,"total":11.3,"purchase":6.3,"net":5.0,"sub_total":11.3,"discount":0},
+{"date":"2026-04-02","month":"April","cash":33.82,"credit":0,"total":33.82,"purchase":17.75,"net":16.07,"sub_total":33.82,"discount":0},
+{"date":"2026-04-03","month":"April","cash":6.4,"credit":134.56,"total":140.96,"purchase":6.5,"net":134.46,"sub_total":140.96,"discount":0},
+{"date":"2026-04-04","month":"April","cash":31.24,"credit":0,"total":31.24,"purchase":8.7,"net":22.54,"sub_total":31.24,"discount":0},
+{"date":"2026-04-05","month":"April","cash":33.04,"credit":0,"total":33.04,"purchase":0,"net":33.04,"sub_total":33.04,"discount":0},
+{"date":"2026-04-06","month":"April","cash":10.3,"credit":9.96,"total":20.26,"purchase":0,"net":20.26,"sub_total":20.26,"discount":0},
+{"date":"2026-04-07","month":"April","cash":2.5,"credit":12.9,"total":15.4,"purchase":35.6,"net":-20.2,"sub_total":15.4,"discount":0},
+{"date":"2026-04-08","month":"April","cash":12.9,"credit":50.65,"total":63.55,"purchase":0,"net":63.55,"sub_total":63.55,"discount":0},
+{"date":"2026-04-09","month":"April","cash":9.0,"credit":117.62,"total":126.62,"purchase":0,"net":126.62,"sub_total":126.62,"discount":0},
+{"date":"2026-04-10","month":"April","cash":12.8,"credit":353.3,"total":366.1,"purchase":18.18,"net":347.92,"sub_total":366.1,"discount":0},
+{"date":"2026-04-11","month":"April","cash":12.66,"credit":123.88,"total":136.54,"purchase":6.6,"net":129.94,"sub_total":136.54,"discount":0},
+{"date":"2026-04-12","month":"April","cash":18.12,"credit":0,"total":18.12,"purchase":10.3,"net":7.82,"sub_total":18.12,"discount":0},
+{"date":"2026-04-13","month":"April","cash":11.7,"credit":0,"total":11.7,"purchase":4.0,"net":7.7,"sub_total":11.7,"discount":0},
+{"date":"2026-04-14","month":"April","cash":24.82,"credit":0,"total":24.82,"purchase":17.1,"net":7.72,"sub_total":24.82,"discount":0},
+{"date":"2026-04-15","month":"April","cash":35.16,"credit":0,"total":35.16,"purchase":5.0,"net":30.16,"sub_total":35.16,"discount":0},
+{"date":"2026-04-16","month":"April","cash":7.9,"credit":68.8,"total":76.7,"purchase":0,"net":76.7,"sub_total":76.7,"discount":0},
+{"date":"2026-04-17","month":"April","cash":16.4,"credit":264.58,"total":280.98,"purchase":26.15,"net":254.83,"sub_total":280.98,"discount":0},
+{"date":"2026-04-18","month":"April","cash":3.6,"credit":109.86,"total":113.46,"purchase":0,"net":113.46,"sub_total":113.46,"discount":0},
+{"date":"2026-04-19","month":"April","cash":19.74,"credit":0,"total":19.74,"purchase":3.0,"net":16.74,"sub_total":19.74,"discount":0},
+{"date":"2026-04-20","month":"April","cash":5.5,"credit":12.78,"total":18.28,"purchase":0,"net":18.28,"sub_total":18.28,"discount":0},
+{"date":"2026-04-21","month":"April","cash":6.5,"credit":23.04,"total":29.54,"purchase":0,"net":29.54,"sub_total":29.54,"discount":0},
+{"date":"2026-04-22","month":"April","cash":26.34,"credit":0,"total":26.34,"purchase":28.91,"net":-2.57,"sub_total":26.34,"discount":0},
+{"date":"2026-04-23","month":"April","cash":0.2,"credit":34.1,"total":34.3,"purchase":0,"net":34.3,"sub_total":34.3,"discount":0},
+{"date":"2026-04-24","month":"April","cash":2.5,"credit":334.67,"total":337.17,"purchase":10.1,"net":327.07,"sub_total":337.17,"discount":0},
+{"date":"2026-04-25","month":"April","cash":18.8,"credit":76.68,"total":95.48,"purchase":18.55,"net":76.93,"sub_total":95.48,"discount":0},
+{"date":"2026-04-26","month":"April","cash":5.82,"credit":36.66,"total":42.48,"purchase":0,"net":42.48,"sub_total":42.48,"discount":0},
+{"date":"2026-04-27","month":"April","cash":19.5,"credit":0,"total":19.5,"purchase":1.6,"net":17.9,"sub_total":19.5,"discount":0},
+{"date":"2026-04-28","month":"April","cash":24.42,"credit":0,"total":24.42,"purchase":17.6,"net":6.82,"sub_total":24.42,"discount":0},
+{"date":"2026-04-29","month":"April","cash":15.8,"credit":0,"total":15.8,"purchase":0,"net":15.8,"sub_total":15.8,"discount":0},
+{"date":"2026-04-30","month":"April","cash":60.42,"credit":0,"total":60.42,"purchase":0,"net":60.42,"sub_total":60.42,"discount":0},
+{"date":"2026-05-01","month":"May","cash":22.34,"credit":240.02,"total":262.36,"purchase":0,"net":262.36,"sub_total":262.36,"discount":0},
+{"date":"2026-05-02","month":"May","cash":17.7,"credit":64.8,"total":82.5,"purchase":10.6,"net":71.9,"sub_total":82.5,"discount":0},
+{"date":"2026-05-03","month":"May","cash":27.04,"credit":0,"total":27.04,"purchase":0,"net":27.04,"sub_total":27.04,"discount":0},
+{"date":"2026-05-04","month":"May","cash":9.8,"credit":19.22,"total":29.02,"purchase":14.1,"net":14.92,"sub_total":29.02,"discount":0},
+{"date":"2026-05-05","month":"May","cash":2.9,"credit":0,"total":2.9,"purchase":0,"net":2.9,"sub_total":2.9,"discount":0},
+{"date":"2026-05-06","month":"May","cash":16.8,"credit":0,"total":16.8,"purchase":0,"net":16.8,"sub_total":16.8,"discount":0},
+{"date":"2026-05-07","month":"May","cash":10.9,"credit":21.28,"total":32.18,"purchase":0,"net":32.18,"sub_total":32.18,"discount":0},
+{"date":"2026-05-08","month":"May","cash":5.0,"credit":166.32,"total":171.32,"purchase":30.18,"net":141.14,"sub_total":171.32,"discount":0},
+{"date":"2026-05-09","month":"May","cash":53.64,"credit":0,"total":53.64,"purchase":0.7,"net":52.94,"sub_total":53.64,"discount":0},
+{"date":"2026-05-10","month":"May","cash":4.9,"credit":5.4,"total":10.3,"purchase":0,"net":10.3,"sub_total":10.3,"discount":0},
+{"date":"2026-05-11","month":"May","cash":3.92,"credit":0,"total":3.92,"purchase":2.6,"net":1.32,"sub_total":3.92,"discount":0},
+{"date":"2026-05-12","month":"May","cash":6.1,"credit":0,"total":6.1,"purchase":0,"net":6.1,"sub_total":6.1,"discount":0},
+{"date":"2026-05-13","month":"May","cash":29.04,"credit":0,"total":29.04,"purchase":0,"net":29.04,"sub_total":29.04,"discount":0},
+{"date":"2026-05-14","month":"May","cash":3.4,"credit":17.84,"total":21.24,"purchase":34.6,"net":-13.36,"sub_total":21.24,"discount":0},
+{"date":"2026-05-15","month":"May","cash":5.9,"credit":131.76,"total":137.66,"purchase":0,"net":137.66,"sub_total":137.66,"discount":0},
+{"date":"2026-05-16","month":"May","cash":66.78,"credit":0,"total":66.78,"purchase":0,"net":66.78,"sub_total":66.78,"discount":0},
+{"date":"2026-05-17","month":"May","cash":10.7,"credit":0,"total":10.7,"purchase":0,"net":10.7,"sub_total":10.7,"discount":0},
+{"date":"2026-05-18","month":"May","cash":7.1,"credit":13.3,"total":20.4,"purchase":0,"net":20.4,"sub_total":20.4,"discount":0},
+{"date":"2026-05-19","month":"May","cash":29.24,"credit":0,"total":29.24,"purchase":3.0,"net":26.24,"sub_total":29.24,"discount":0},
+{"date":"2026-05-20","month":"May","cash":6.5,"credit":12.62,"total":19.12,"purchase":17.4,"net":1.72,"sub_total":19.12,"discount":0},
+{"date":"2026-05-21","month":"May","cash":3.3,"credit":42.74,"total":46.04,"purchase":3.0,"net":43.04,"sub_total":46.04,"discount":0},
+{"date":"2026-05-22","month":"May","cash":6.3,"credit":92.7,"total":99.0,"purchase":0,"net":99.0,"sub_total":99.0,"discount":0},
+{"date":"2026-05-23","month":"May","cash":44.98,"credit":0,"total":44.98,"purchase":26.4,"net":18.58,"sub_total":44.98,"discount":0},
+{"date":"2026-05-24","month":"May","cash":27.9,"credit":0,"total":27.9,"purchase":22.45,"net":5.45,"sub_total":27.9,"discount":0},
+{"date":"2026-05-25","month":"May","cash":10.6,"credit":51.12,"total":61.72,"purchase":0,"net":61.72,"sub_total":61.72,"discount":0},
+{"date":"2026-05-26","month":"May","cash":11.6,"credit":81.92,"total":93.52,"purchase":6.9,"net":86.62,"sub_total":93.52,"discount":0},
+{"date":"2026-05-27","month":"May","cash":20.6,"credit":85.72,"total":106.32,"purchase":8.3,"net":98.02,"sub_total":106.32,"discount":0},
+{"date":"2026-05-28","month":"May","cash":20.6,"credit":258.62,"total":279.22,"purchase":18.15,"net":261.07,"sub_total":279.22,"discount":0},
+{"date":"2026-05-29","month":"May","cash":6.7,"credit":313.05,"total":319.75,"purchase":4.0,"net":315.75,"sub_total":319.75,"discount":0},
+{"date":"2026-05-30","month":"May","cash":11.3,"credit":95.58,"total":106.88,"purchase":0,"net":106.88,"sub_total":106.88,"discount":0},
+{"date":"2026-05-31","month":"May","cash":1.8,"credit":16.64,"total":18.44,"purchase":0,"net":18.44,"sub_total":18.44,"discount":0},
+{"date":"2026-06-01","month":"June","cash":1.2,"credit":13.92,"total":15.12,"purchase":14.05,"net":1.07,"sub_total":15.12,"discount":0},
+{"date":"2026-06-02","month":"June","cash":3.6,"credit":28.9,"total":32.5,"purchase":0.0,"net":32.5,"sub_total":32.5,"discount":0},
+{"date":"2026-06-03","month":"June","cash":0.0,"credit":19.58,"total":19.58,"purchase":0.0,"net":19.58,"sub_total":19.58,"discount":0},
+{"date":"2026-06-04","month":"June","cash":0.4,"credit":46.5,"total":46.9,"purchase":0.0,"net":46.9,"sub_total":46.9,"discount":0},
+{"date":"2026-06-05","month":"June","cash":7.3,"credit":193.88,"total":201.18,"purchase":0.0,"net":201.18,"sub_total":201.18,"discount":0},
+{"date":"2026-06-06","month":"June","cash":0.0,"credit":41.16,"total":41.16,"purchase":13.0,"net":28.16,"sub_total":41.16,"discount":0},
+{"date":"2026-06-07","month":"June","cash":0.0,"credit":22.18,"total":22.18,"purchase":5.2,"net":16.98,"sub_total":22.18,"discount":0},
+{"date":"2026-06-08","month":"June","cash":0.4,"credit":26.36,"total":26.76,"purchase":0.0,"net":26.76,"sub_total":26.76,"discount":0},
+{"date":"2026-06-09","month":"June","cash":1.2,"credit":19.96,"total":21.16,"purchase":0.0,"net":21.16,"sub_total":21.16,"discount":0},
+{"date":"2026-06-10","month":"June","cash":0.0,"credit":12.9,"total":12.9,"purchase":0.0,"net":12.9,"sub_total":12.9,"discount":0},
+{"date":"2026-06-11","month":"June","cash":0.0,"credit":47.9,"total":47.9,"purchase":0.0,"net":47.9,"sub_total":47.9,"discount":0},
+{"date":"2026-06-12","month":"June","cash":2.0,"credit":196.08,"total":198.08,"purchase":0.0,"net":198.08,"sub_total":198.08,"discount":0},
+{"date":"2026-06-13","month":"June","cash":0.5,"credit":85.24,"total":85.74,"purchase":0.0,"net":85.74,"sub_total":85.74,"discount":0},
+{"date":"2026-06-14","month":"June","cash":0.0,"credit":40.24,"total":40.24,"purchase":52.65,"net":-12.41,"sub_total":40.24,"discount":0},
+{"date":"2026-06-15","month":"June","cash":0.0,"credit":18.72,"total":18.72,"purchase":3.7,"net":15.02,"sub_total":18.72,"discount":0},
+{"date":"2026-06-16","month":"June","cash":0.0,"credit":10.3,"total":10.3,"purchase":23.4,"net":-13.1,"sub_total":10.3,"discount":0},
+{"date":"2026-06-17","month":"June","cash":0.0,"credit":53.34,"total":53.34,"purchase":26.6,"net":26.74,"sub_total":53.34,"discount":0},
+{"date":"2026-06-18","month":"June","cash":8.0,"credit":225.64,"total":233.64,"purchase":27.4,"net":206.24,"sub_total":233.64,"discount":0},
+{"date":"2026-06-19","month":"June","cash":12.1,"credit":315.22,"total":327.32,"purchase":0.0,"net":327.32,"sub_total":327.32,"discount":0},
+{"date":"2026-06-20","month":"June","cash":6.3,"credit":93.22,"total":99.52,"purchase":0.0,"net":99.52,"sub_total":99.52,"discount":0},
+{"date":"2026-06-21","month":"June","cash":0.0,"credit":11.4,"total":11.4,"purchase":3.2,"net":8.2,"sub_total":11.4,"discount":0},
+{"date":"2026-06-22","month":"June","cash":1.5,"credit":23.2,"total":24.7,"purchase":0.0,"net":24.7,"sub_total":24.7,"discount":0},
+{"date":"2026-06-23","month":"June","cash":0.0,"credit":15.5,"total":15.5,"purchase":0.0,"net":15.5,"sub_total":15.5,"discount":0},
+{"date":"2026-06-24","month":"June","cash":0.0,"credit":22.94,"total":22.94,"purchase":5.15,"net":17.79,"sub_total":22.94,"discount":0},
+{"date":"2026-06-25","month":"June","cash":0.0,"credit":23.34,"total":23.34,"purchase":6.5,"net":16.84,"sub_total":23.34,"discount":0},
+{"date":"2026-06-26","month":"June","cash":0.0,"credit":166.28,"total":166.28,"purchase":0.0,"net":166.28,"sub_total":166.28,"discount":0},
+{"date":"2026-06-27","month":"June","cash":1.5,"credit":81.66,"total":83.16,"purchase":7.8,"net":75.36,"sub_total":83.16,"discount":0},
+{"date":"2026-06-28","month":"June","cash":6.9,"credit":20.24,"total":27.14,"purchase":17.45,"net":9.69,"sub_total":27.14,"discount":0},
+{"date":"2026-06-29","month":"June","cash":5.2,"credit":45.12,"total":50.32,"purchase":9.1,"net":41.22,"sub_total":50.32,"discount":0},
+{"date":"2026-06-30","month":"June","cash":0.0,"credit":18.0,"total":18.0,"purchase":0.0,"net":0.0,"sub_total":18.0,"discount":0},
+];
+
+const MONTHLY={
+  January: {total:2043.54,cash:341.60,credit:1701.94,purchase:322.32,net:1721.22,days:31,sub_total:2091.20,discount:47.86,hasPOS:true},
+  February:{total:1372.72,cash:377.94,credit:994.78, purchase:194.85,net:1177.87,days:28,sub_total:1395.80,discount:23.10,hasPOS:true},
+  March:   {total:1427.58,cash:251.48,credit:1176.10,purchase:179.64,net:1247.94,days:30,sub_total:1499.10,discount:71.32,hasPOS:true},
+  April:   {total:2263.24,cash:133.78,credit:2129.46,purchase:230.24,net:2033.00,days:30,sub_total:2263.24,discount:0,hasPOS:false},
+  May:     {total:2236.03,cash:186.34,credit:2049.69,purchase:199.38,net:2036.65,days:31,sub_total:2236.03,discount:0,hasPOS:false},
+  June:    {total:1997.02,cash:58.1,credit:1938.92, purchase:215.2,net:1763.82,days:30,sub_total:2075.7,discount:69.4,hasPOS:true}
+};
+const MONTHS=['January','February','March','April','May','June'];
+const G={green:'#0b260f',gold:'#cc990d',teal:'#0d3339',turq:'#147066',cream:'#ede4d0',red:'#b94a2c'};
+
+let currentMonth='All';
+const charts={};
+
+function fmt(n,d=2){return n.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function omr(n){return 'OMR '+fmt(n);}
+
+function setMonth(m){
+  currentMonth=m;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>{const tx=t.textContent.trim();if((m==='All'&&tx==='All')||(m!=='All'&&tx===m))t.classList.add('active');});
+  // Update POS banner
+  const banner=document.getElementById('pos-banner');
+  const posMonths=MONTHS.filter(mm=>MONTHLY[mm].hasPOS);
+  if(m!=='All'&&!MONTHLY[m].hasPOS){
+    banner.innerHTML='<div style="font-size:11px;color:var(--muted);font-style:italic;">📋 POS discount data not available for '+m+' — sourced from monthly cash report only</div>';
+  } else {
+    const data=m==='All'?null:MONTHLY[m];
+    if(m==='All'){
+      const gsub=posMonths.reduce((s,mm)=>s+MONTHLY[mm].sub_total,0);
+      const gdisc=posMonths.reduce((s,mm)=>s+MONTHLY[mm].discount,0);
+      const gnet=gsub-gdisc;
+      const gdr=gsub>0?(gdisc/gsub*100):0;
+      const label=posMonths.length?posMonths.join(', '):'—';
+      banner.innerHTML=`<div class="pos-stat"><div class="pos-val">${omr(gsub)}</div><div class="pos-lbl">Gross Sub-Total (${label})</div></div><div class="pos-divider"></div><div class="pos-stat"><div class="pos-val">${omr(gdisc)}</div><div class="pos-lbl">Total Discounts Given</div></div><div class="pos-divider"></div><div class="pos-stat"><div class="pos-val">${omr(gnet)}</div><div class="pos-lbl">Net After Discounts</div></div><div class="pos-divider"></div><div class="pos-stat"><div class="pos-val">${fmt(gdr,2)}%</div><div class="pos-lbl">Avg Discount Rate</div></div><div class="pos-note">📋 POS data covers ${label} · other months from monthly cash reports</div>`;
+    } else {
+      const dr=data.sub_total>0?(data.discount/data.sub_total*100):0;
+      banner.innerHTML=`<div class="pos-stat"><div class="pos-val">${omr(data.sub_total)}</div><div class="pos-lbl">Gross Sub-Total</div></div><div class="pos-divider"></div><div class="pos-stat"><div class="pos-val">${omr(data.discount)}</div><div class="pos-lbl">Discounts Given</div></div><div class="pos-divider"></div><div class="pos-stat"><div class="pos-val">${omr(data.total)}</div><div class="pos-lbl">Net After Discounts</div></div><div class="pos-divider"></div><div class="pos-stat"><div class="pos-val">${fmt(dr,2)}%</div><div class="pos-lbl">Discount Rate</div></div><div class="pos-note">📋 POS System · ${m} 2026</div>`;
+    }
+  }
+  renderAll();
+}
+
+function fd(){return currentMonth==='All'?DAILY.filter(d=>d.total>0):DAILY.filter(d=>d.month===currentMonth&&d.total>0);}
+
+function renderKPIs(){
+  const data=fd();
+  const total=data.reduce((s,d)=>s+d.total,0);
+  const cash=data.reduce((s,d)=>s+d.cash,0);
+  const credit=data.reduce((s,d)=>s+d.credit,0);
+  const purchase=data.reduce((s,d)=>s+d.purchase,0);
+  const net=total-purchase;
+  const disc=currentMonth==='All'?MONTHS.reduce((s,mm)=>s+(MONTHLY[mm].discount||0),0):(MONTHLY[currentMonth]?MONTHLY[currentMonth].discount:0);
+  const avgDay=data.length>0?total/data.length:0;
+  const best=data.reduce((b,d)=>d.total>b.total?d:b,{total:0,date:'—'});
+  const posMonths=MONTHS.filter(mm=>MONTHLY[mm].hasPOS);
+  const discNote=currentMonth==='All'?(posMonths.length?posMonths.join('/')+' POS data':'No POS data'):(MONTHLY[currentMonth].hasPOS?currentMonth+' POS data':'POS data N/A');
+  // Month-over-month delta (only meaningful when a single month with a prior month is selected)
+  function momTag(cur,prevVal){
+    if(currentMonth==='All'||prevVal==null||prevVal===0) return '';
+    const d=cur-prevVal, pct=d/prevVal*100, up=d>=0;
+    return ` <span style="color:${up?'#147066':'#cc990d'};font-weight:700;white-space:nowrap">${up?'▲':'▼'} ${Math.abs(pct).toFixed(1)}%</span>`;
+  }
+  const _mi=MONTHS.indexOf(currentMonth), _prevM=(currentMonth!=='All'&&_mi>0)?MONTHS[_mi-1]:null;
+  const momRev = _prevM ? momTag(MONTHLY[currentMonth].total, MONTHLY[_prevM].total) : '';
+  const momAvg = _prevM ? momTag(total/Math.max(data.length,1), (function(){const pd=DAILY.filter(d=>d.month===_prevM&&d.total>0);return pd.length?pd.reduce((s,d)=>s+d.total,0)/pd.length:0;})()) : '';
+  const momSuffix = _prevM ? ` vs ${_prevM.slice(0,3)}` : '';
+  document.getElementById('kpi-grid').innerHTML=[
+    {l:'Total Revenue',    v:omr(total),    s:`${data.length} trading days${momRev?' · '+momRev.trim()+momSuffix:''}`,           cls:'',      i:'◈'},
+    {l:'Net Revenue',      v:omr(net),      s:`After OMR ${fmt(purchase)} purchases`,  cls:'turq',  i:'▲'},
+    {l:'Cash Collected',   v:omr(cash),     s:`${total>0?(cash/total*100).toFixed(1):0}% of total`, cls:'green',i:'◇'},
+    {l:'Card Revenue',     v:omr(credit),   s:`${total>0?(credit/total*100).toFixed(1):0}% of total`,cls:'teal',i:'▣'},
+    {l:'Avg Daily Sales',  v:omr(avgDay),   s:`Per trading day${momAvg?' · '+momAvg.trim()+momSuffix:''}`,           cls:'',      i:'◆'},
+    {l:'Total Cash Purchase',v:omr(purchase), s:`${total>0?(purchase/total*100).toFixed(1):0}% of sales`,cls:'',i:'▷'},
+    {l:'Discounts Given',  v:omr(disc),     s:discNote,                                cls:'red',   i:'%'},
+    {l:'Record Day',       v:omr(best.total),s:best.date!=='—'?best.date:'—',          cls:'green', i:'★'}
+  ].map(k=>`<div class="kpi ${k.cls}"><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('');
+}
+
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function renderMonthlyChart(){
+  dc('monthly');
+  const labels=currentMonth==='All'?MONTHS:[currentMonth];
+  const ctx=document.getElementById('chart-monthly').getContext('2d');
+  charts['monthly']=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {type:'bar',label:'Total Sales',data:labels.map(m=>MONTHLY[m].total),backgroundColor:'rgba(204,153,13,0.75)',borderColor:G.gold,borderWidth:1.5,borderRadius:4,order:2},
+      {type:'line',label:'Net Revenue',data:labels.map(m=>MONTHLY[m].net),borderColor:G.green,backgroundColor:'rgba(11,38,15,0.08)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:G.green,fill:true,tension:0.35,order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},color:G.teal}},tooltip:{callbacks:{label:c=>' OMR '+fmt(c.raw)}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:10},color:G.teal}},x:{ticks:{font:{size:11},color:G.teal}}}}
+  });
+}
+
+function renderPaymentChart(){
+  dc('payment');
+  const data=fd();
+  const tc=data.reduce((s,d)=>s+d.cash,0),tcc=data.reduce((s,d)=>s+d.credit,0);
+  const ctx=document.getElementById('chart-payment').getContext('2d');
+  charts['payment']=new Chart(ctx,{type:'doughnut',data:{labels:['Cash','Credit Card'],datasets:[{data:[tc,tcc],backgroundColor:[G.gold,G.green],borderWidth:3,borderColor:'#fff',hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:14,color:G.teal}},tooltip:{callbacks:{label:c=>' OMR '+fmt(c.raw)+' ('+((c.raw/(tc+tcc))*100).toFixed(1)+'%)'}}}}});
+  const t=tc+tcc;
+  document.getElementById('payment-stats').innerHTML=`<div class="stat-item"><div class="stat-val" style="color:${G.gold}">OMR ${fmt(tc)}</div><div class="stat-lbl">Cash ${t>0?(tc/t*100).toFixed(1):0}%</div></div><div class="stat-item"><div class="stat-val" style="color:${G.green}">OMR ${fmt(tcc)}</div><div class="stat-lbl">Card ${t>0?(tcc/t*100).toFixed(1):0}%</div></div>`;
+}
+
+function renderDailyChart(){
+  dc('daily');
+  const data=fd();
+  const ctx=document.getElementById('chart-daily').getContext('2d');
+  charts['daily']=new Chart(ctx,{type:'line',data:{labels:data.map(d=>d.date.slice(5)),datasets:[{label:'Daily Sales',data:data.map(d=>d.total),borderColor:G.gold,backgroundColor:'rgba(204,153,13,0.07)',borderWidth:2,pointRadius:2,fill:true,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' OMR '+fmt(c.raw)}}},scales:{x:{ticks:{maxTicksLimit:10,font:{size:9},color:G.teal},grid:{display:false}},y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:10},color:G.teal}}}}});
+}
+
+function renderSplitChart(){
+  dc('split');
+  const labels=currentMonth==='All'?MONTHS:[currentMonth];
+  const ctx=document.getElementById('chart-split').getContext('2d');
+  charts['split']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Net Revenue',data:labels.map(m=>MONTHLY[m].net),backgroundColor:'rgba(20,112,102,0.8)',borderRadius:4,stack:'s'},{label:'Purchases',data:labels.map(m=>MONTHLY[m].purchase),backgroundColor:'rgba(204,153,13,0.5)',borderRadius:4,stack:'s'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},color:G.teal}},tooltip:{callbacks:{label:c=>' OMR '+fmt(c.raw)}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:11},color:G.teal}},y:{stacked:true,beginAtZero:true,grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:10},color:G.teal}}}}});
+}
+
+function renderGrossNetChart(){
+  dc('gross-net');
+  const labels=MONTHS.filter(m=>MONTHLY[m].hasPOS);
+  const ctx=document.getElementById('chart-gross-net').getContext('2d');
+  charts['gross-net']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Gross (Pre-Discount)',data:labels.map(m=>MONTHLY[m].sub_total),backgroundColor:'rgba(204,153,13,0.5)',borderRadius:4,stack:'n'},{label:'Discounts Given',data:labels.map(m=>-MONTHLY[m].discount),backgroundColor:'rgba(20,112,102,0.75)',borderRadius:4,stack:'n'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},color:G.teal}},tooltip:{callbacks:{label:c=>' OMR '+fmt(Math.abs(c.raw))}}},scales:{x:{grid:{display:false},ticks:{font:{size:10},color:G.teal}},y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'OMR '+fmt(Math.abs(v),0),font:{size:9},color:G.teal}}}}});
+}
+
+function renderDiscountChart(){
+  dc('discounts');
+  const posData=DAILY.filter(d=>['January','February','March'].includes(d.month)&&d.discount>0);
+  const ctx=document.getElementById('chart-discounts').getContext('2d');
+  charts['discounts']=new Chart(ctx,{type:'bar',data:{labels:posData.map(d=>d.date.slice(5)),datasets:[{label:'Daily Discount',data:posData.map(d=>d.discount),backgroundColor:'rgba(20,112,102,0.7)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' OMR '+fmt(c.raw)}}},scales:{x:{ticks:{maxTicksLimit:8,font:{size:8},color:G.teal},grid:{display:false}},y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:9},color:G.teal}}}}});
+}
+
+function renderDiscRateChart(){
+  dc('disc-rate');
+  const labels=MONTHS.filter(m=>MONTHLY[m].hasPOS);
+  const rates=labels.map(m=>(MONTHLY[m].sub_total>0?(MONTHLY[m].discount/MONTHLY[m].sub_total*100):0));
+  const ctx=document.getElementById('chart-disc-rate').getContext('2d');
+  charts['disc-rate']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Discount %',data:rates,backgroundColor:labels.map((_,i)=>[`rgba(204,153,13,0.7)`,`rgba(20,112,102,0.7)`,`rgba(11,38,15,0.7)`,`rgba(13,51,57,0.7)`][i%4]),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw,2)+'%'}}},scales:{x:{grid:{display:false},ticks:{font:{size:10},color:G.teal}},y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>v.toFixed(1)+'%',font:{size:9},color:G.teal}}}}});
+}
+
+function renderInsights(){
+  const data=fd();
+  const total=data.reduce((s,d)=>s+d.total,0);
+  const purchase=data.reduce((s,d)=>s+d.purchase,0);
+  const disc=data.reduce((s,d)=>s+d.discount,0);
+  const nm=total>0?((total-purchase)/total*100):0;
+  const dowT=[0,0,0,0,0,0,0],dowC=[0,0,0,0,0,0,0];
+  data.forEach(d=>{const w=new Date(d.date).getDay();dowT[w]+=d.total;dowC[w]++;});
+  const dowA=dowT.map((t,i)=>dowC[i]>0?t/dowC[i]:0);
+  const bd=dowA.indexOf(Math.max(...dowA));
+  const dn=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const best=data.reduce((b,d)=>d.total>b.total?d:b,{total:0,date:'—'});
+  const discStr=disc>0?`OMR ${fmt(disc)} in discounts recorded (Jan–Mar POS).`:'No POS discount data for selected period.';
+  document.getElementById('insights').innerHTML=`
+    <div class="insight"><div class="insight-label">Net Margin</div><div class="insight-value">${nm.toFixed(1)}%</div><div class="insight-desc">OMR ${fmt(total-purchase)} net from OMR ${fmt(total)} revenue after OMR ${fmt(purchase)} in supply purchases.</div></div>
+    <div class="insight green-accent"><div class="insight-label">Best Day of Week</div><div class="insight-value">${dn[bd]}</div><div class="insight-desc">Averages OMR ${fmt(Math.max(...dowA))} on ${dn[bd]}s. Prioritise staffing and promotions on this day.</div></div>
+    <div class="insight turq-accent"><div class="insight-label">Peak Day on Record</div><div class="insight-value">${best.date}</div><div class="insight-desc">OMR ${fmt(best.total)} on best day (${best.month}). ${discStr}</div></div>`;
+}
+
+let tableGrid=null;
+function buildTableData(m){
+  const hasPOS=MONTHLY[m]&&MONTHLY[m].hasPOS;
+  return DAILY.filter(d=>d.month===m&&d.total>0).map(d=>[
+    d.date,
+    'OMR '+fmt(d.cash),
+    'OMR '+fmt(d.credit),
+    'OMR '+fmt(d.total),
+    hasPOS&&d.sub_total>d.total?'OMR '+fmt(d.sub_total):'—',
+    hasPOS&&d.discount>0?'OMR '+fmt(d.discount):'—',
+    'OMR '+fmt(d.purchase),
+    'OMR '+fmt(Math.max(0,d.net))
+  ]);
+}
+function renderTable(m){
+  document.querySelectorAll('.mpick').forEach(b=>{b.classList.remove('active');if(b.dataset.m===m)b.classList.add('active');});
+  const rows=buildTableData(m);
+  const hasPOS=MONTHLY[m]&&MONTHLY[m].hasPOS;
+  if(tableGrid){tableGrid.updateConfig({data:rows}).forceRender();return;}
+  tableGrid=new gridjs.Grid({
+    columns:[
+      {name:'Date',width:'95px'},
+      {name:'Cash',width:'80px'},
+      {name:'Credit',width:'85px'},
+      {name:'Total Sales',width:'100px'},
+      {name:'Sub Total',width:'90px'},
+      {name:'Discount',width:'85px'},
+      {name:'Purchases',width:'90px'},
+      {name:'Net',width:'85px'}
+    ],
+    data:rows,pagination:{limit:16},sort:true,
+    style:{table:{'font-size':'11px'},th:{'background':G.green,'color':'#fff','font-size':'9px','text-transform':'uppercase','letter-spacing':'0.7px','font-weight':'800'},td:{'color':G.teal}}
+  }).render(document.getElementById('daily-table'));
+}
+function setSalesView(view){
+  ['overview','revenue','discounts','log'].forEach(v=>{
+    const el = document.getElementById('sales-view-'+v);
+    if(el) el.style.display = (v===view) ? '' : 'none';
+  });
+  document.querySelectorAll('.view-tab').forEach(t=>t.classList.toggle('active', t.dataset.view===view));
+  // Same zero-width-canvas concern as the page-level Sales/Spending switch: force
+  // a resize now that this sub-view's charts are actually visible.
+  requestAnimationFrame(()=>Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }));
+}
+
+function initPicker(){
+  document.getElementById('table-month-picker').innerHTML=MONTHS.map(m=>{
+    const hasPOS=MONTHLY[m].hasPOS;
+    return `<button class="mpick${m==='January'?' active':''}" data-m="${m}" onclick="renderTable('${m}')">${m}${hasPOS?'<span class="pos-tag">POS</span>':''}</button>`;
+  }).join('');
+}
+
+function renderAll(){
+  renderKPIs();renderMonthlyChart();renderPaymentChart();renderDailyChart();renderSplitChart();renderGrossNetChart();renderDiscountChart();renderDiscRateChart();renderInsights();
+  if(document.getElementById('pl-kpis')){renderPLKPIs();renderPLChart();renderExpenseChart();renderBalanceChart();renderExpenseTable();}
+  // Charts may have just been (re)created inside a currently-hidden sales sub-view
+  // (see setSalesView) — force a resize once they're actually visible so Chart.js
+  // doesn't lock in a zero-width canvas from a display:none ancestor.
+  requestAnimationFrame(()=>Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }));
+}
+
+initPicker();
+(function(){
+  const posM = MONTHS.filter(m=>MONTHLY[m].hasPOS);
+  const dailyPosM = ['January','February','March'].filter(m=>MONTHS.includes(m)&&MONTHLY[m].hasPOS);
+  const gn = document.getElementById('gross-net-title'); if(gn) gn.textContent = 'Gross vs Net Sales ('+posM.join('–')+')';
+  const pan = document.getElementById('pos-analysis-note'); if(pan) pan.textContent = ' · '+posM.join(', ')+' from POS system';
+  const ddt = document.getElementById('daily-disc-title'); if(ddt) ddt.textContent = 'Daily Discounts ('+dailyPosM.join('–')+')';
+})();
+// ── BANK / OPERATING EXPENSE DATA (from 5 XLS bank statement files) ──────
+const OPEX = {
+  January:  { salaries:490, coffee:128.6, food:22.65, grocery:162.0, pos_fees:52.5, marketing:100, equipment:35.2, bank:0,
+               nonrecurring:{'Year-End Bonuses':3000,'Travel & Events':423.1,'Rent/Services':125.65}, total:4566.59 },
+  February: { salaries:330, coffee:114.3, food:150.31, grocery:18.34, pos_fees:52.5, marketing:0, equipment:42.5, bank:1.05,
+               nonrecurring:{'External Services':100,'Transfers':18.5}, total:827.5 },
+  March:    { salaries:420, coffee:119.2, food:248.22, grocery:0, pos_fees:0, marketing:0, equipment:0, bank:1.05,
+               nonrecurring:{'External Services':100}, total:888.47 },
+  April:    { salaries:400, coffee:81.3, food:367.2, grocery:97.29, pos_fees:105, marketing:0, equipment:0, bank:2.10,
+               nonrecurring:{'External Services':200,'SWIFT Charges':304.27,'VAT Payment':53.01,'Large Transfers':1701.23}, total:3320.07 },
+  May:      { salaries:410, coffee:25, food:257.47, grocery:50.53, pos_fees:0, marketing:0, equipment:310, bank:1.05,
+               nonrecurring:{'SWIFT Charges':304.28,'Other':77.53}, total:1435.86 },
+  June:     { salaries:464.0, coffee:577.06, food:342.05, grocery:75.61, pos_fees:0, marketing:0, equipment:299.25, bank:3.05,
+               nonrecurring:{'Fit-out/Improvements':881.5,'VAT Payment':70.14,'Government Fees':51.0}, total:2763.67 }
+};
+
+const BANK_BALANCE = {
+  January:1716.43, February:1982.86, March:2371.23, April:1104.76, May:1731.43, June:895.54
+};
+
+function regularOpex(m) {
+  const o = OPEX[m];
+  return o.salaries + o.coffee + o.food + o.grocery + o.pos_fees + o.marketing + o.equipment + o.bank;
+}
+
+function renderPLKPIs() {
+  const months = currentMonth === 'All' ? MONTHS : [currentMonth];
+  const rev = months.reduce((s,m) => s + MONTHLY[m].total, 0);
+  const totalOpex = months.reduce((s,m) => s + OPEX[m].total, 0);
+  const regOpex = months.reduce((s,m) => s + regularOpex(m), 0);
+  const netReg = rev - regOpex;
+  const avgBalance = months.reduce((s,m) => s + BANK_BALANCE[m], 0) / months.length;
+  const lastBalance = BANK_BALANCE[months[months.length-1]];
+  const regPct = rev > 0 ? (netReg/rev*100) : 0;
+
+  document.getElementById('pl-kpis').innerHTML = [
+    {l:'Total Revenue',      v: omr(rev),       s: months.length+' month(s)',             cls:''},
+    {l:'Regular OpEx',       v: omr(regOpex),   s:'Excl. bonuses & one-offs',             cls:'red'},
+    {l:'Net Operating Profit',v:omr(netReg),    s:'Margin: '+regPct.toFixed(1)+'%',      cls:netReg>=0?'green':'red'},
+    {l:'Bank Closing Balance',v:omr(lastBalance),s:'End of '+months[months.length-1],    cls:'teal'}
+  ].map(k=>`<div class="kpi ${k.cls}"><div class="kpi-label">${k.l}</div><div class="kpi-value" style="font-size:17px">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('');
+}
+
+function renderPLChart() {
+  dc('pl-chart');
+  const labels = currentMonth==='All' ? MONTHS : [currentMonth];
+  const ctx = document.getElementById('chart-pl').getContext('2d');
+  const netData = labels.map(m => MONTHLY[m].total - regularOpex(m));
+  charts['pl-chart'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [
+      { type:'bar', label:'Revenue',      data: labels.map(m=>MONTHLY[m].total),   backgroundColor:'rgba(204,153,13,0.7)', borderRadius:4, order:2 },
+      { type:'bar', label:'Regular OpEx', data: labels.map(m=>regularOpex(m)),     backgroundColor:'rgba(185,74,44,0.65)', borderRadius:4, order:2 },
+      { type:'line',label:'Net Profit',   data: netData, borderColor:'#0b260f', backgroundColor:'rgba(11,38,15,0.08)',
+        borderWidth:2.5, pointRadius:6, pointBackgroundColor: netData.map(v=>v>=0?G.green:G.red), fill:true, tension:0.3, order:1 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{labels:{font:{size:10},color:G.teal}}, tooltip:{callbacks:{label:c=>' OMR '+fmt(c.raw)}} },
+      scales:{ y:{ beginAtZero:true, grid:{color:'rgba(0,0,0,0.04)'}, ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:10},color:G.teal} },
+               x:{ ticks:{font:{size:11},color:G.teal} } } }
+  });
+}
+
+function renderExpenseChart() {
+  dc('expense-chart');
+  const months = currentMonth==='All' ? MONTHS : [currentMonth];
+  const cats = {Salaries:0,'Coffee Supplies':0,'Food & Ingredients':0,'Grocery & Packaging':0,'POS Fees':0,Marketing:0,Equipment:0,'Bank Charges':0};
+  months.forEach(m => {
+    const o=OPEX[m];
+    cats['Salaries']+=o.salaries; cats['Coffee Supplies']+=o.coffee;
+    cats['Food & Ingredients']+=o.food; cats['Grocery & Packaging']+=o.grocery;
+    cats['POS Fees']+=o.pos_fees; cats['Marketing']+=o.marketing;
+    cats['Equipment']+=o.equipment; cats['Bank Charges']+=o.bank;
+  });
+  const ctx = document.getElementById('chart-expenses').getContext('2d');
+  const colors = [G.green, G.gold, G.turq, G.teal,'#7a5c1e','#4a7c59','#8b6914','rgba(185,74,44,0.8)'];
+  const vals = Object.values(cats).filter(v=>v>0);
+  const lbls = Object.keys(cats).filter((_,i)=>Object.values(cats)[i]>0);
+  charts['expense-chart'] = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels:lbls, datasets:[{data:vals, backgroundColor:colors.slice(0,lbls.length), borderWidth:3, borderColor:'#fff', hoverOffset:8}] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{ legend:{position:'right', labels:{font:{size:9},padding:10,color:G.teal}},
+        tooltip:{callbacks:{label:c=>' OMR '+fmt(c.raw)+' ('+((c.raw/vals.reduce((a,b)=>a+b,0))*100).toFixed(1)+'%)'}} } }
+  });
+}
+
+function renderBalanceChart() {
+  dc('balance-chart');
+  const ctx = document.getElementById('chart-balance').getContext('2d');
+  charts['balance-chart'] = new Chart(ctx, {
+    type:'line',
+    data:{ labels:MONTHS, datasets:[{
+      label:'Bank Balance', data:MONTHS.map(m=>BANK_BALANCE[m]),
+      borderColor:G.turq, backgroundColor:'rgba(20,112,102,0.10)',
+      borderWidth:2.5, pointRadius:6, pointBackgroundColor:G.turq, fill:true, tension:0.3
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' OMR '+fmt(c.raw)}} },
+      scales:{ y:{ grid:{color:'rgba(0,0,0,0.04)'}, ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:10},color:G.teal} },
+               x:{ ticks:{font:{size:11},color:G.teal} } } }
+  });
+}
+
+function renderExpenseTable() {
+  const months = currentMonth==='All' ? MONTHS : [currentMonth];
+
+  // Collect all unique non-recurring keys across selected months (preserving order)
+  const nrKeys = [...new Set(months.flatMap(m => Object.keys(OPEX[m].nonrecurring)))];
+
+  const regRows = [
+    ['Salaries',           ...months.map(m=>'OMR '+fmt(OPEX[m].salaries))],
+    ['Coffee Supplies',    ...months.map(m=>'OMR '+fmt(OPEX[m].coffee))],
+    ['Food & Ingredients', ...months.map(m=>'OMR '+fmt(OPEX[m].food))],
+    ['Grocery & Packaging',...months.map(m=>'OMR '+fmt(OPEX[m].grocery))],
+    ['POS Fees',           ...months.map(m=>'OMR '+fmt(OPEX[m].pos_fees))],
+    ['Marketing',          ...months.map(m=>'OMR '+fmt(OPEX[m].marketing))],
+    ['Equipment',          ...months.map(m=>'OMR '+fmt(OPEX[m].equipment))],
+    ['Bank Charges',       ...months.map(m=>'OMR '+fmt(OPEX[m].bank))],
+    ['── Regular Total ──',...months.map(m=>'OMR '+fmt(regularOpex(m)))],
+  ];
+
+  // One row per unique non-recurring item, showing value per month or "—"
+  const nrRows = nrKeys.map(k => [
+    k,
+    ...months.map(m => OPEX[m].nonrecurring[k] ? 'OMR '+fmt(OPEX[m].nonrecurring[k]) : '—')
+  ]);
+
+  const summaryRows = [
+    ['── Grand Total ──',...months.map(m=>'OMR '+fmt(OPEX[m].total))],
+    ['Revenue',          ...months.map(m=>'OMR '+fmt(MONTHLY[m].total))],
+    ['Net Profit',       ...months.map(m=>'OMR '+fmt(MONTHLY[m].total-regularOpex(m)))],
+  ];
+
+  const bold    = ['── Regular Total ──','── Grand Total ──','Revenue','Net Profit'];
+  const red     = ['── Grand Total ──'];
+  const greenrow= ['Net Profit','Revenue'];
+  const nrSet   = new Set(nrKeys);
+
+  const allRows = [...regRows, ...nrRows, ...summaryRows];
+
+  const thStyle = `background:#f0efed;color:#57534e;padding:8px 10px;font-size:9px;text-transform:uppercase;letter-spacing:.7px;font-weight:700;border-bottom:1px solid #e0d8cc;text-align:left;`;
+  const tHead = `<tr><th style="${thStyle}border-radius:4px 0 0 0">Category</th>${months.map((m,i)=>`<th style="${thStyle}${i===months.length-1?'border-radius:0 4px 0 0':''}">${m}</th>`).join('')}</tr>`;
+
+  // Section header row for Non-Recurring
+  const nrHeaderRow = nrKeys.length > 0
+    ? `<tr><td colspan="${months.length+1}" style="padding:6px 10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#a8a29e;background:#fafafa;border-top:2px solid #e0d8cc;border-bottom:1px solid #e0d8cc;">Non-Recurring Items</td></tr>`
+    : '';
+
+  const renderRow = (r) => {
+    const isBold   = bold.includes(r[0]);
+    const isRed    = red.includes(r[0]);
+    const isGreen2 = greenrow.includes(r[0]);
+    return `<tr>${r.map((cell,i)=>{
+      let bg = '';
+      if(isBold) bg = isRed?'rgba(185,74,44,.06)':isGreen2?'rgba(11,38,15,.05)':'rgba(204,153,13,.06)';
+      const color = r[0]==='Net Profit'&&i>0&&cell.startsWith('OMR -')?'#b94a2c':isBold?(isGreen2?G.green:isRed?'#b94a2c':G.teal):'inherit';
+      return `<td style="padding:7px 10px;font-size:11px;font-weight:${isBold?700:500};border-bottom:1px solid rgba(0,0,0,.04);background:${bg};color:${color}">${cell}</td>`;
+    }).join('')}</tr>`;
+  };
+
+  const tBody =
+    regRows.map(renderRow).join('') +
+    nrHeaderRow +
+    nrRows.map(renderRow).join('') +
+    summaryRows.map(renderRow).join('');
+
+  document.getElementById('expense-table').innerHTML =
+    `<table style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden">${tHead}<tbody>${tBody}</tbody></table>`;
+}
+
+</script>
+
+<script defer>
+renderAll();
+renderTable('January');
+</script>
+
+<script defer>
+// ══ BUSINESS SPENDING & CASH FLOW (bank statement categorization) ══════════
+// Source: OpTransactionHistoryUX528 (same 5 monthly bank statement files behind
+// the January–May figures in MONTHLY above). 202 transactions total, Jan–May 2026.
+// This section is a fixed period snapshot and does NOT respond to the Month
+// filter at the top of the page — the category-level totals below are only
+// available as a Jan–May aggregate in the source data, not broken out by month.
+
+const SPEND_MONTHS = ['January','February','March','April','May'];
+const SPEND_INCOME  = {January:1515.96, February:1093.93, March:1276.84, April:2053.61, May:2062.53};
+const SPEND_EXPENSE = {January:4566.59, February:827.50,  March:888.47,  April:3320.07, May:1435.86};
+
+const SPEND_TOTAL_SPENT  = 11038.49;
+const SPEND_TOTAL_INCOME = 8002.86;
+const SPEND_NET_CASHFLOW = +(SPEND_TOTAL_INCOME - SPEND_TOTAL_SPENT).toFixed(2); // -3035.63
+const SPEND_EXPENSE_TXNS = 101;
+const SPEND_DEPOSIT_TXNS = 101;
+const SPEND_TOTAL_TXNS   = 202;
+
+const SPEND_CATEGORIES = [
+  {name:'Bonuses',                     amount:3000.00},
+  {name:'Payroll',                     amount:2054.20},
+  {name:'Equipment & Furnishings',     amount:1477.57},
+  {name:'Ingredients & Raw Materials', amount:1190.21},
+  {name:'Groceries & Supplies',        amount:912.16},
+  {name:'Dining & Cafe Purchases',     amount:891.59},
+  {name:'International Payments',      amount:578.55},
+  {name:'Travel & Tickets',            amount:423.10},
+  {name:'POS Terminal Fees',           amount:210.00},
+  {name:'Utilities & Bills',           amount:154.61},
+  {name:'Marketing',                   amount:100.00},
+  {name:'Bank Fees',                   amount:30.00},
+  {name:'Other Expenses',              amount:13.00},
+  {name:'Delivery & Shipping',         amount:2.00},
+  {name:'Taxes (VAT)',                 amount:1.50}
+];
+
+const SPEND_FLAGS = [
+  {cat:'Equipment & Furnishings',     amount:1477.57, color:G.teal,  note:'Mostly a one-time April splurge — new furniture and heaters (~OMR 1,442 in a single month). Not a recurring drain, but worth budgeting for separately next time so it doesn\'t blindside cash flow.'},
+  {cat:'Ingredients & Raw Materials', amount:1190.21, color:G.turq,  note:'Your biggest true cost-of-goods category. Reasonable for a cafe, but it crept up in April (OMR 570) — worth checking if portion sizes or supplier prices shifted.'},
+  {cat:'Groceries & Supplies',        amount:912.16,  color:G.green, note:'Spiked hard in May (OMR 437 vs ~OMR 130–215 in other months) — worth a quick look at what drove that month.'},
+  {cat:'Dining & Cafe Purchases',     amount:891.59,  color:G.gold,  note:'Steady OMR 120–235/month buying from other cafes — if this is for research or staff, fine, but it adds up to nearly OMR 900 over 5 months.'}
+];
+
+const TRANSACTIONS = [
+  {date:'01/01/2026', desc:'Transfer bonus MOHD AL RIYAMI LFT26001KTDNWD8M', cat:'Bonuses', amount:1500.000},
+  {date:'01/01/2026', desc:'Transfer bonus AL MUHANNAD AHMED HARITH ALNABHANI LFT260013FLG731D', cat:'Bonuses', amount:1500.000},
+  {date:'29/04/2026', desc:'Transfer furniture seating area AL MUHANNAD AHMED HARITH ALNABHANI LFT', cat:'Equipment & Furnishings', amount:768.571},
+  {date:'19/04/2026', desc:'Transfer heaters AL MUHANNAD AHMED HARITH ALNABHANI LFT26109NR93N63L', cat:'Equipment & Furnishings', amount:450.000},
+  {date:'01/01/2026', desc:'Transfer 1010001920B26728 MONTHLY SALARY 211866934851920.030001', cat:'Payroll', amount:440.000},
+  {date:'01/03/2026', desc:'Transfer 3010005690B49990 MONTHLY SALARY 212452646349205.010001', cat:'Payroll', amount:420.000},
+  {date:'05/05/2026', desc:'Transfer 05050003124B1372 MONTHLY SALARY 213109352944822.030001', cat:'Payroll', amount:410.000},
+  {date:'01/04/2026', desc:'Transfer 4010002430B75890 MONTHLY SALARY 212767856648491.020001', cat:'Payroll', amount:400.000},
+  {date:'09/02/2026', desc:'Transfer 2090002131B78879 LATE SALARY PAYMENT 212253220744724.010001', cat:'Payroll', amount:330.000},
+  {date:'10/05/2026', desc:'Transfer Coffee machine CROWN MUSCAT INERNATIONAL SPC LFT261303XYHRS3J', cat:'Groceries & Supplies', amount:310.000},
+  {date:'03/05/2026', desc:'SWIFT Outward Payment United Arab Emirates cris and jo general trading', cat:'International Payments', amount:289.283},
+  {date:'12/04/2026', desc:'SWIFT Outward Payment United Arab Emirates cris and jo general trading', cat:'International Payments', amount:289.267},
+  {date:'01/04/2026', desc:'ACH Direct Credit Payment 1450 Empire Production FT26091883270009', cat:'Ingredients & Raw Materials', amount:200.000},
+  {date:'11/01/2026', desc:'Transfer ticket bonny AJRAS SIDAB TRADING LFT26011C2SSNYJ4', cat:'Travel & Tickets', amount:200.000},
+  {date:'07/04/2026', desc:'ACH Direct Credit Payment 2596745 Desserts guy zahil FT26097468975589', cat:'Ingredients & Raw Materials', amount:173.900},
+  {date:'13/04/2026', desc:'Transfer stones 165 AL MUHANNAD AHMED HARITH ALNABHANI LFT2610359P36LR', cat:'Equipment & Furnishings', amount:165.000},
+  {date:'19/01/2026', desc:'Transfer ticket AL MUHANNAD AHMED HARITH ALNABHANI LFT26019CQ2GM4Z1', cat:'Travel & Tickets', amount:142.101},
+  {date:'08/01/2026', desc:'ACH Direct Credit Payment 1388 Riyadh Aljabal Alakhdhar FT260085943168', cat:'Ingredients & Raw Materials', amount:125.652},
+  {date:'26/04/2026', desc:'POS 661804-SWEET SALT 512.114,240.000@0.00100000 213015307705846.02000', cat:'Dining & Cafe Purchases', amount:114.240},
+  {date:'06/01/2026', desc:'POS 473449-EL CAFE 512.113,000.000@0.00100000 211918678355294.030001', cat:'Dining & Cafe Purchases', amount:113.000},
+  {date:'10/03/2026', desc:'ACH Direct Credit Payment 2596745 Desserts guy zahil FT26069569540952', cat:'Ingredients & Raw Materials', amount:110.700},
+  {date:'25/05/2026', desc:'Transfer Desserts sweet salt AL MUHANNAD AHMED HARITH ALNABHANI LFT261', cat:'Dining & Cafe Purchases', amount:109.452},
+  {date:'12/04/2026', desc:'Transfer 4 month pos AL KAYS INTERNATIONAL LLC LFT261023HJY8JFN', cat:'POS Terminal Fees', amount:105.000},
+  {date:'03/02/2026', desc:'ACH Direct Credit Payment 1450 Empire Production FT26034039616283', cat:'Ingredients & Raw Materials', amount:100.000},
+  {date:'01/03/2026', desc:'ACH Direct Credit Payment 1450 Empire Production FT26060432001150', cat:'Ingredients & Raw Materials', amount:100.000},
+  {date:'06/01/2026', desc:'Transfer marketing AL MUHANNAD AHMED HARITH ALNABHANI LFT26006YNZMSJLK', cat:'Marketing', amount:100.000},
+  {date:'28/04/2026', desc:'Transfer bills MOHD AL RIYAMI LFT26118YGBY864B', cat:'Utilities & Bills', amount:98.100},
+  {date:'19/04/2026', desc:'Transfer cakes AL MUHANNAD AHMED HARITH ALNABHANI LFT26109JCSVFQW5', cat:'Ingredients & Raw Materials', amount:95.760},
+  {date:'19/01/2026', desc:'Transfer ticket AJRAS SIDAB TRADING LFT260194C932QFJ', cat:'Travel & Tickets', amount:81.000},
+  {date:'03/05/2026', desc:'POS 076780-SWEET SALT 512.75,600.000@0.00100000 213065591157520.030001', cat:'Dining & Cafe Purchases', amount:75.600}
+];
+
+function renderSpendKPIs(){
+  const netStr = SPEND_NET_CASHFLOW < 0 ? '('+omr(Math.abs(SPEND_NET_CASHFLOW))+')' : omr(SPEND_NET_CASHFLOW);
+  document.getElementById('spend-kpi-grid').innerHTML=[
+    {l:'Total Spent',            v:omr(SPEND_TOTAL_SPENT),   s:SPEND_EXPENSE_TXNS+' expense transactions', cls:'red'},
+    {l:'Income (Card Deposits)', v:omr(SPEND_TOTAL_INCOME),  s:SPEND_DEPOSIT_TXNS+' deposits',              cls:'turq'},
+    {l:'Net Cash Flow',          v:netStr,                   s:'Deposits minus spending',                   cls:SPEND_NET_CASHFLOW<0?'red':'green'},
+    {l:'Biggest Category',       v:SPEND_CATEGORIES[0].name, s:omr(SPEND_CATEGORIES[0].amount)+' ('+(SPEND_CATEGORIES[0].amount/SPEND_TOTAL_SPENT*100).toFixed(1)+'% of spend)', cls:'gold'},
+    {l:'Bank Transactions',      v:SPEND_TOTAL_TXNS,         s:'Jan–May 2026',                              cls:''}
+  ].map(k=>`<div class="kpi ${k.cls}"><div class="kpi-label">${k.l}</div><div class="kpi-value" style="font-size:17px">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('');
+}
+
+function renderSpendMonthlyChart(){
+  const ctx=document.getElementById('chart-spend-monthly').getContext('2d');
+  new Chart(ctx,{
+    type:'bar',
+    data:{labels:SPEND_MONTHS,datasets:[
+      {label:'Income (Card Deposits)',data:SPEND_MONTHS.map(m=>SPEND_INCOME[m]),backgroundColor:'rgba(20,112,102,0.8)',borderRadius:4},
+      {label:'Spending',data:SPEND_MONTHS.map(m=>SPEND_EXPENSE[m]),backgroundColor:'rgba(204,153,13,0.6)',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:10},color:G.teal}},tooltip:{callbacks:{label:c=>' '+c.dataset.label+': OMR '+fmt(c.raw)}}},
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:10},color:G.teal}},x:{ticks:{font:{size:11},color:G.teal}}}}
+  });
+}
+
+function renderSpendCategoryChart(){
+  const top5 = SPEND_CATEGORIES.slice(0,5);
+  const otherTotal = SPEND_CATEGORIES.slice(5).reduce((s,c)=>s+c.amount,0);
+  const labels = [...top5.map(c=>c.name), 'Other (10 categories)'];
+  const values = [...top5.map(c=>c.amount), otherTotal];
+  // Official Peak brand palette only (green, gold, mid-day blue, turquoise —
+  // per brand guideline). The 2 extra slots needed for 6 categories reuse
+  // lighter tints of green/gold rather than introducing any non-brand hue.
+  const colors = [G.green, G.gold, G.turq, G.teal, 'rgba(11,38,15,0.5)', 'rgba(204,153,13,0.5)'];
+  const ctx = document.getElementById('chart-spend-category').getContext('2d');
+  new Chart(ctx,{
+    type:'doughnut',
+    data:{labels,datasets:[{data:values,backgroundColor:colors,borderWidth:3,borderColor:'#fff',hoverOffset:8}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'right',labels:{boxWidth:12,font:{size:10},padding:10,color:G.teal}},
+        tooltip:{callbacks:{label:c=>' '+c.label+': OMR '+fmt(c.raw)+' ('+(c.raw/SPEND_TOTAL_SPENT*100).toFixed(1)+'%)'}}}}
+  });
+}
+
+function renderSpendFlags(){
+  document.getElementById('spend-flags').innerHTML = SPEND_FLAGS.map(f=>`
+    <div class="insight" style="border-left-color:${f.color}">
+      <div class="insight-label">${f.cat}</div>
+      <div class="insight-value">OMR ${fmt(f.amount)}</div>
+      <div class="insight-desc">${f.note}</div>
+    </div>`).join('');
+}
+
+function renderSpendCategoryTable(){
+  const thStyle = `background:#f0efed;color:#57534e;padding:8px 10px;font-size:9px;text-transform:uppercase;letter-spacing:.7px;font-weight:700;border-bottom:1px solid #e0d8cc;text-align:left;`;
+  const tHead = `<tr><th style="${thStyle}border-radius:4px 0 0 0">Category</th><th style="${thStyle}text-align:right">Amount</th><th style="${thStyle}text-align:right">% of Spend</th><th style="${thStyle}border-radius:0 4px 0 0">Share</th></tr>`;
+  const rows = SPEND_CATEGORIES.map(c=>{
+    const pct = c.amount/SPEND_TOTAL_SPENT*100;
+    const barPct = (c.amount/SPEND_CATEGORIES[0].amount*100).toFixed(1);
+    return `<tr>
+      <td style="padding:7px 10px;font-size:11px;font-weight:600;border-bottom:1px solid rgba(0,0,0,.04);color:${G.teal}">${c.name}</td>
+      <td style="padding:7px 10px;font-size:11px;font-weight:700;border-bottom:1px solid rgba(0,0,0,.04);text-align:right;color:${G.green}">OMR ${fmt(c.amount)}</td>
+      <td style="padding:7px 10px;font-size:11px;font-weight:600;border-bottom:1px solid rgba(0,0,0,.04);text-align:right;color:${G.teal}">${pct.toFixed(1)}%</td>
+      <td style="padding:7px 10px;border-bottom:1px solid rgba(0,0,0,.04);"><div style="background:var(--cream);border-radius:4px;height:7px;width:100%;overflow:hidden"><div style="height:100%;border-radius:4px;background:${G.gold};width:${barPct}%"></div></div></td>
+    </tr>`;
+  }).join('');
+  const totalRow = `<tr><td style="padding:8px 10px;font-size:11px;font-weight:800;background:rgba(204,153,13,.06);color:${G.teal}">── Total ──</td><td style="padding:8px 10px;font-size:11px;font-weight:800;background:rgba(204,153,13,.06);text-align:right;color:${G.green}">OMR ${fmt(SPEND_TOTAL_SPENT)}</td><td style="padding:8px 10px;font-size:11px;font-weight:800;background:rgba(204,153,13,.06);text-align:right;color:${G.teal}">100.0%</td><td style="padding:8px 10px;background:rgba(204,153,13,.06);"></td></tr>`;
+  document.getElementById('spend-category-table').innerHTML = `<table style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden">${tHead}<tbody>${rows}${totalRow}</tbody></table>`;
+}
+
+function renderSpendTransactions(){
+  const rows = TRANSACTIONS.map(t=>[t.date, t.desc, t.cat, 'OMR '+fmt(t.amount)]);
+  new gridjs.Grid({
+    columns:[
+      {name:'Date',width:'90px'},
+      {name:'Description'},
+      {name:'Category',width:'190px'},
+      {name:'Amount',width:'100px'}
+    ],
+    data:rows,pagination:{limit:10},sort:true,
+    style:{table:{'font-size':'11px'},th:{'background':G.green,'color':'#fff','font-size':'9px','text-transform':'uppercase','letter-spacing':'0.7px','font-weight':'800'},td:{'color':G.teal}}
+  }).render(document.getElementById('spend-txn-table'));
+}
+
+// Each call is isolated so a slow/blocked CDN (Chart.js or gridjs) can't take
+// down the sections that don't depend on it (KPIs, flags, category table).
+// The two Chart.js canvases are rendered lazily (see setPage below) because the
+// Spending tab starts hidden (display:none) — creating a chart in a hidden
+// container gives it zero width, so we wait until the tab is actually shown.
+[renderSpendKPIs, renderSpendFlags, renderSpendCategoryTable, renderSpendTransactions].forEach(fn => {
+  try { fn(); } catch(e) { console.error(fn.name, 'failed:', e); }
+});
+
+let spendChartsRendered = false;
+let profitChartsRendered = false;
+function setPage(page){
+  document.getElementById('page-sales').style.display = page==='sales' ? '' : 'none';
+  document.getElementById('page-spending').style.display = page==='spending' ? '' : 'none';
+  const pp=document.getElementById('page-profit'); if(pp) pp.style.display = page==='profit' ? '' : 'none';
+  document.querySelectorAll('.page-tab').forEach(t=>t.classList.toggle('active', t.dataset.page===page));
+  if(page==='spending' && !spendChartsRendered){
+    spendChartsRendered = true;
+    try { renderSpendMonthlyChart(); } catch(e) { console.error('renderSpendMonthlyChart failed:', e); }
+    try { renderSpendCategoryChart(); } catch(e) { console.error('renderSpendCategoryChart failed:', e); }
+  }
+  if(page==='profit'){
+    if(!profitChartsRendered){
+      profitChartsRendered = true;
+      try { renderFinAll(); } catch(e) { console.error('renderFinAll failed:', e); }
+    }
+    requestAnimationFrame(()=>Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }));
+  }
+  if(page==='sales'){
+    // Safety net: force the sales-tab Chart.js instances to recompute their size
+    // in case the browser's ResizeObserver didn't catch the display:none→block flip.
+    requestAnimationFrame(()=>Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }));
+  }
+}
+</script>
+
+<script defer>
+// ══ PROFITABILITY & CASH FLOW (derived live from existing datasets) ═════════
+// Window = months present in BOTH sales (MONTHLY) and bank spend (SPEND_EXPENSE)
+// → Jan–May 2026, matching the visible Spending page's fixed snapshot.
+const FIN_MONTHS = MONTHS.filter(m => MONTHLY[m] && typeof SPEND_EXPENSE!=='undefined' && SPEND_EXPENSE[m]!=null);
+function finCat(name){ const c=SPEND_CATEGORIES.find(c=>c.name===name); return c?c.amount:0; }
+const FIN_SALES     = FIN_MONTHS.reduce((s,m)=>s+MONTHLY[m].total,0);
+const FIN_SPEND     = FIN_MONTHS.reduce((s,m)=>s+SPEND_EXPENSE[m],0);
+const FIN_ONETIME   = finCat('Bonuses') + finCat('Equipment & Furnishings');
+const FIN_RECURRING = FIN_SPEND - FIN_ONETIME;
+const FIN_SURPLUS   = FIN_SALES - FIN_RECURRING;      // recurring operating surplus
+const FIN_NET       = FIN_SALES - FIN_SPEND;          // net incl. one-time
+const FIN_MARGIN    = FIN_SALES>0 ? (FIN_SURPLUS/FIN_SALES*100) : 0;
+
+// Accountant-style negative formatting: (1,234.56)
+function accfmt(n){ return n<0 ? '('+fmt(Math.abs(n))+')' : fmt(n); }
+function omrAcc(n){ return 'OMR '+accfmt(n); }
+
+function renderFinKPIs(){
+  const cards = [
+    {l:'Total Sales',                 v:omr(FIN_SALES),      s:FIN_MONTHS.length+' months · POS + cash'},
+    {l:'Operating Spend',             v:omr(FIN_SPEND),      s:'Bank outflows, Jan–May'},
+    {l:'Recurring Spend',             v:omr(FIN_RECURRING),  s:'Excl. one-time items'},
+    {l:'One-Time Spend',              v:omr(FIN_ONETIME),    s:'Bonuses + furnishings'},
+    {l:'Recurring Operating Surplus', v:omr(FIN_SURPLUS),    s:'≈ '+FIN_MARGIN.toFixed(1)+'% of sales'},
+    {l:'Net incl. One-Time',          v:omrAcc(FIN_NET),     s:'Sales − all bank spend', neg:FIN_NET<0}
+  ];
+  // Plain card template (as renderKPIs/renderSpendKPIs). Negative figures are signalled
+  // in brand gold (--gold) rather than a non-brand red.
+  document.getElementById('fin-kpi-grid').innerHTML = cards.map(k=>
+    `<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-value"${k.neg?' style="color:var(--gold)"':''}>${k.v}</div><div class="kpi-sub">${k.s}</div></div>`
+  ).join('');
+}
+
+function renderFinSalesSpendChart(){
+  dc('fin-sales-spend');
+  const ctx=document.getElementById('chart-fin-sales-spend').getContext('2d');
+  const net=FIN_MONTHS.map(m=>MONTHLY[m].total-SPEND_EXPENSE[m]);
+  charts['fin-sales-spend']=new Chart(ctx,{
+    type:'bar',
+    data:{labels:FIN_MONTHS,datasets:[
+      {type:'bar',label:'Sales',        data:FIN_MONTHS.map(m=>MONTHLY[m].total),   backgroundColor:'rgba(204,153,13,0.75)',borderRadius:4,order:2},
+      {type:'bar',label:'Bank Spend',   data:FIN_MONTHS.map(m=>SPEND_EXPENSE[m]),   backgroundColor:'rgba(13,51,57,0.55)', borderRadius:4,order:2},
+      {type:'line',label:'Net (sales − spend)',data:net,borderColor:G.green,backgroundColor:'rgba(11,38,15,0.06)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:net.map(v=>v>=0?G.green:G.gold),fill:false,tension:0.3,order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:10},color:G.teal,boxWidth:12}},tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+omrAcc(c.raw)}}},
+      scales:{y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:10},color:G.teal}},x:{ticks:{font:{size:11},color:G.teal}}}}
+  });
+}
+
+function renderFinSplitChart(){
+  dc('fin-split');
+  const ctx=document.getElementById('chart-fin-split').getContext('2d');
+  charts['fin-split']=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:['Recurring Spend','One-Time Spend'],datasets:[{data:[FIN_RECURRING,FIN_ONETIME],backgroundColor:[G.turq,G.gold],borderWidth:3,borderColor:'#fff',hoverOffset:8}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'bottom',labels:{font:{size:10},padding:10,color:G.teal}},
+        tooltip:{callbacks:{label:c=>' '+c.label+': OMR '+fmt(c.raw)+' ('+(c.raw/FIN_SPEND*100).toFixed(1)+'%)'}}}}
+  });
+  document.getElementById('fin-split-stats').innerHTML =
+    `<div class="stat-item"><div class="stat-val">${(FIN_RECURRING/FIN_SPEND*100).toFixed(0)}%</div><div class="stat-lbl">Recurring</div></div>`+
+    `<div class="stat-item"><div class="stat-val">${(FIN_ONETIME/FIN_SPEND*100).toFixed(0)}%</div><div class="stat-lbl">One-Time</div></div>`+
+    `<div class="stat-item"><div class="stat-val">OMR ${fmt(FIN_SPEND)}</div><div class="stat-lbl">Total Spend</div></div>`;
+}
+
+function renderFinBalanceChart(){
+  dc('fin-balance');
+  const ctx=document.getElementById('chart-fin-balance').getContext('2d');
+  const bm=MONTHS.filter(m=>typeof BANK_BALANCE!=='undefined'&&BANK_BALANCE[m]!=null);
+  charts['fin-balance']=new Chart(ctx,{
+    type:'line',
+    data:{labels:bm,datasets:[{label:'Bank Balance',data:bm.map(m=>BANK_BALANCE[m]),borderColor:G.turq,backgroundColor:'rgba(20,112,102,0.10)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:G.turq,fill:true,tension:0.3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+omr(c.raw)}}},
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:10},color:G.teal}},x:{ticks:{font:{size:11},color:G.teal}}}}
+  });
+}
+
+function renderFinOneTime(){
+  const items=[
+    {n:'Owner Bonuses',            a:finCat('Bonuses'),                  d:'2 transfers, 1 Jan 2026'},
+    {n:'Equipment & Furnishings',  a:finCat('Equipment & Furnishings'),  d:'Furniture, heaters — mostly April'}
+  ];
+  document.getElementById('fin-onetime').innerHTML =
+    items.map(i=>`<div class="fin-onetime-row"><div><div style="font-size:12px;font-weight:700;color:var(--green)">${i.n}</div><div style="font-size:9.5px;color:var(--muted)">${i.d}</div></div><div style="font-size:14px;font-weight:800;color:var(--gold)">OMR ${fmt(i.a)}</div></div>`).join('')+
+    `<div class="fin-onetime-row" style="border-top:1.5px solid var(--border);margin-top:2px"><div style="font-size:12px;font-weight:800;color:var(--teal)">Total One-Time</div><div style="font-size:14px;font-weight:800;color:var(--teal)">OMR ${fmt(FIN_ONETIME)}</div></div>`+
+    `<div style="font-size:10.5px;color:var(--muted);line-height:1.6;margin-top:12px">Remove these and the business ran a recurring operating surplus of <strong style="color:var(--turq)">OMR ${fmt(FIN_SURPLUS)}</strong> over the five months — roughly <strong>${FIN_MARGIN.toFixed(0)}%</strong> of sales. Excludes till-cash supply purchases, which are tracked separately on the Sales tab.</div>`;
+}
+
+// ── Card reconciliation: POS card sales (MONTHLY.credit) vs bank card deposits ──
+const FIN_RECON = FIN_MONTHS.filter(m=>typeof SPEND_INCOME!=='undefined'&&SPEND_INCOME[m]!=null).map(m=>({m,sales:MONTHLY[m].credit,bank:SPEND_INCOME[m],v:MONTHLY[m].credit-SPEND_INCOME[m]}));
+(function(){let c=0;FIN_RECON.forEach(r=>{c+=r.v;r.cum=c;});})();
+const RECON_SALES_TOT = FIN_RECON.reduce((s,r)=>s+r.sales,0);
+const RECON_BANK_TOT  = FIN_RECON.reduce((s,r)=>s+r.bank,0);
+const RECON_VAR_TOT   = RECON_SALES_TOT - RECON_BANK_TOT;
+const RECON_PCT       = RECON_BANK_TOT>0 ? (RECON_VAR_TOT/RECON_BANK_TOT*100) : 0;
+
+function renderFinReconBanner(){
+  document.getElementById('fin-recon-banner').innerHTML =
+    `<div style="font-size:11.5px;color:var(--muted);line-height:1.65">Over Jan–May, the POS rang up <strong style="color:var(--green)">OMR ${fmt(RECON_SALES_TOT)}</strong> in card sales and the bank received <strong style="color:var(--green)">OMR ${fmt(RECON_BANK_TOT)}</strong> in card deposits — a net gap of just <strong style="color:var(--turq)">OMR ${accfmt(RECON_VAR_TOT)} (${RECON_PCT.toFixed(2)}%)</strong>. Month-to-month swings are normal card-settlement lag (a day's takings can land in the next month), but they net out almost exactly, which is a healthy sign that POS and bank agree.</div>`;
+}
+
+function renderFinReconChart(){
+  dc('fin-recon');
+  const ctx=document.getElementById('chart-fin-recon').getContext('2d');
+  charts['fin-recon']=new Chart(ctx,{
+    type:'bar',
+    data:{labels:FIN_RECON.map(r=>r.m.slice(0,3)),datasets:[
+      {label:'POS Card Sales', data:FIN_RECON.map(r=>r.sales),backgroundColor:'rgba(20,112,102,0.8)',borderRadius:4},
+      {label:'Bank Card Deposits',data:FIN_RECON.map(r=>r.bank),backgroundColor:'rgba(204,153,13,0.65)',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:10},color:G.teal,boxWidth:12}},tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+omr(c.raw)}}},
+      scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.04)'},ticks:{callback:v=>'OMR '+fmt(v,0),font:{size:10},color:G.teal}},x:{ticks:{font:{size:11},color:G.teal}}}}
+  });
+}
+
+function renderFinReconTable(){
+  const cell=(n,signed)=>{
+    const cls = n<0?'recon-neg':(signed&&n>0?'recon-pos':'');
+    const txt = signed&&n>0 ? '+'+fmt(n) : accfmt(n);
+    return `<td class="${cls}">${txt}</td>`;
+  };
+  const rows=FIN_RECON.map(r=>
+    `<tr><td>${r.m.slice(0,3)}</td><td>${fmt(r.sales)}</td><td>${fmt(r.bank)}</td>${cell(r.v,true)}${cell(r.cum,true)}</tr>`
+  ).join('');
+  const totalRow=`<tr class="total-row"><td>Total</td><td>${fmt(RECON_SALES_TOT)}</td><td>${fmt(RECON_BANK_TOT)}</td>${cell(RECON_VAR_TOT,true)}<td class="${RECON_VAR_TOT<0?'recon-neg':'recon-pos'}">${RECON_PCT.toFixed(2)}%</td></tr>`;
+  document.getElementById('fin-recon-table').innerHTML =
+    `<table class="recon-table"><thead><tr><th>Month</th><th>Card Sales</th><th>Bank Dep.</th><th>Variance</th><th>Cumulative</th></tr></thead><tbody>${rows}${totalRow}</tbody></table>`+
+    `<div style="font-size:9px;color:var(--muted);margin-top:8px;font-style:italic">All figures OMR. Negatives in parentheses. Variance = card sales − bank deposits; final column is running cumulative (last column of Total row shows cumulative variance as % of deposits).</div>`;
+}
+
+function renderFinAll(){
+  renderFinKPIs();
+  renderFinSalesSpendChart();
+  renderFinSplitChart();
+  renderFinBalanceChart();
+  renderFinOneTime();
+  renderFinReconBanner();
+  renderFinReconChart();
+  renderFinReconTable();
+}
+</script>
+
+<!-- ── UPLOAD MODAL ─────────────────────────────────────────── -->
+<div class="modal-overlay" id="upload-overlay" onclick="if(event.target===this)closeUpload()">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h2>⬆ Upload New Month Data</h2>
+        <p>Drop up to 3 files — auto-detected by filename</p>
+      </div>
+      <button class="modal-close" onclick="closeUpload()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="dropzone" id="dropzone"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event)">
+        <input type="file" multiple accept=".xlsx,.xls" onchange="handleFiles(this.files)">
+        <div class="dz-icon">📂</div>
+        <div class="dz-title">Drag & drop files here, or click to browse</div>
+        <div class="dz-sub">Accepts .xlsx and .xls files</div>
+        <div class="dz-types">
+          <span class="dz-type">☕ Coffee Sale</span>
+          <span class="dz-type">🧾 POS Summary</span>
+          <span class="dz-type">🏦 Bank Statement</span>
+        </div>
+      </div>
+      <div class="file-list" id="file-list"></div>
+      <div class="upload-result" id="upload-result"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeUpload()">Cancel</button>
+      <button class="btn-process" id="btn-process" onclick="processFiles()" disabled>Process Files</button>
+    </div>
+  </div>
+</div>
+
+<script defer>
+// ── UPLOAD SYSTEM ────────────────────────────────────────────────────────
+const MONTH_NAMES_ALL = ['January','February','March','April','May','June',
+                         'July','August','September','October','November','December'];
+
+let pendingFiles = [];
+
+function openUpload()  { document.getElementById('upload-overlay').classList.add('open'); }
+function closeUpload() {
+  document.getElementById('upload-overlay').classList.remove('open');
+  pendingFiles = [];
+  document.getElementById('file-list').innerHTML = '';
+  document.getElementById('upload-result').style.display = 'none';
+  document.getElementById('upload-result').className = 'upload-result';
+  document.getElementById('btn-process').disabled = true;
+}
+
+function detectType(name) {
+  const n = name.toUpperCase();
+  if (n.includes('COFFEE SALE') || n.includes('COFFEE SALES')) return 'coffee_sale';
+  if (n.includes('POS SALES SUMMARY') || n.includes('POS SUMMARY'))  return 'pos_summary';
+  if (n.includes('OPTRANSACTIONHISTORY') || n.includes('TRANSACTION HISTORY')) return 'bank_statement';
+  return 'unknown';
+}
+
+function typeLabel(t) {
+  return { coffee_sale:'☕ Coffee Sale', pos_summary:'🧾 POS Summary', bank_statement:'🏦 Bank Statement', unknown:'❓ Unknown' }[t];
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+}
+
+function handleFiles(fileList) {
+  for (const f of fileList) {
+    if (!f.name.match(/\.xlsx?$/i)) continue;
+    if (pendingFiles.find(p => p.file.name === f.name)) continue;
+    const type = detectType(f.name);
+    pendingFiles.push({ file: f, type, status: 'pending' });
+  }
+  renderFileList();
+  document.getElementById('btn-process').disabled = pendingFiles.length === 0;
+}
+
+function renderFileList() {
+  const el = document.getElementById('file-list');
+  el.innerHTML = pendingFiles.map((p, i) => `
+    <div class="file-item" id="fi-${i}">
+      <div class="file-icon">${p.type==='coffee_sale'?'☕':p.type==='pos_summary'?'🧾':p.type==='bank_statement'?'🏦':'📄'}</div>
+      <div class="file-info">
+        <div class="file-name">${p.file.name}</div>
+        <div class="file-type">${typeLabel(p.type)}</div>
+      </div>
+      <div class="file-status pending" id="fs-${i}">Pending</div>
+    </div>`).join('');
+}
+
+// ── PARSERS ──────────────────────────────────────────────────────────────
+
+function extractMonthFromName(name) {
+  const n = name.toUpperCase();
+  for (const m of MONTH_NAMES_ALL) {
+    if (n.includes(m.toUpperCase())) return m;
+    if (n.includes(m.substring(0,3).toUpperCase())) return m;
+  }
+  return null;
+}
+
+function parseCoffeeSale(wb, fileName) {
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const daily = [];
+  let monthName = null;
+
+  for (const row of rows) {
+    if (!row || row.length < 18) continue;
+    const dateVal = row[3]; // col D
+    if (!dateVal) continue;
+
+    // Parse date
+    let d;
+    if (typeof dateVal === 'number') {
+      // Excel serial date
+      const jsDate = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+      d = jsDate;
+    } else {
+      const s = String(dateVal).trim();
+      const parts = s.split('/');
+      if (parts.length === 3) {
+        d = new Date(parts[2], parts[1]-1, parts[0]);
+      } else {
+        continue;
+      }
+    }
+    if (isNaN(d)) continue;
+
+    const safe = v => (v !== null && v !== '' && !isNaN(parseFloat(v))) ? parseFloat(v) : 0;
+    const cash     = safe(row[4]);
+    const credit   = safe(row[5]);
+    const total    = safe(row[8]);
+    const purchase = safe(row[16]);
+    const net      = safe(row[17]);
+
+    if (total === 0 && cash === 0) continue;
+
+    const mName = MONTH_NAMES_ALL[d.getMonth()];
+    if (!monthName) monthName = mName;
+
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    daily.push({ date: dateStr, month: mName, cash: +cash.toFixed(2), credit: +credit.toFixed(2),
+                 total: +total.toFixed(2), purchase: +purchase.toFixed(2), net: +net.toFixed(2),
+                 sub_total: +total.toFixed(2), discount: 0 });
+  }
+
+  if (!daily.length) return null;
+  monthName = monthName || extractMonthFromName(fileName);
+
+  const monthly = {
+    total:     +daily.reduce((s,r)=>s+r.total,0).toFixed(2),
+    cash:      +daily.reduce((s,r)=>s+r.cash,0).toFixed(2),
+    credit:    +daily.reduce((s,r)=>s+r.credit,0).toFixed(2),
+    purchase:  +daily.reduce((s,r)=>s+r.purchase,0).toFixed(2),
+    net:       +daily.reduce((s,r)=>s+r.net,0).toFixed(2),
+    days:      daily.length,
+    sub_total: +daily.reduce((s,r)=>s+r.total,0).toFixed(2),
+    discount:  0,
+    hasPOS:    false
+  };
+  return { month: monthName, daily, monthly };
+}
+
+function parsePOSSummary(wb) {
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const records = {};
+  const months = new Set();
+
+  for (const row of rows) {
+    if (!row || !row[0]) continue;
+    const dateVal = row[0];
+    let d;
+    if (typeof dateVal === 'number') {
+      d = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+    } else {
+      const s = String(dateVal).trim();
+      const parts = s.split('/');
+      if (parts.length !== 3) continue;
+      d = new Date(parts[2], parts[1]-1, parts[0]);
+    }
+    if (isNaN(d)) continue;
+
+    const safe = v => (v !== null && !isNaN(parseFloat(v))) ? parseFloat(v) : 0;
+    const subTotal = safe(row[1]);
+    const discount = safe(row[3]);
+    if (subTotal === 0) continue;
+
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    records[dateStr] = { sub_total: +subTotal.toFixed(2), discount: +discount.toFixed(2) };
+    months.add(MONTH_NAMES_ALL[d.getMonth()]);
+  }
+  return { records, months: [...months] };
+}
+
+function parseBankStatement(wb) {
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+  // Find month from header rows
+  let monthName = null;
+  for (const row of rows.slice(0,10)) {
+    const text = (row||[]).join(' ');
+    const m = text.match(/0[1-9]\/([01][0-9])\/20[0-9]{2}/);
+    if (m) { monthName = MONTH_NAMES_ALL[parseInt(m[1])-1]; break; }
+  }
+
+  let totalCredits = 0, totalDebits = 0, lastBalance = 0;
+  const cats = { salaries:0, coffee:0, food:0, grocery:0, pos_fees:0, marketing:0, equipment:0, bank:0 };
+  const nonrecurring = {};
+
+  for (const row of rows.slice(7)) {
+    if (!row || !row[3]) continue;
+    const safe = v => (v !== null && v !== '' && !isNaN(parseFloat(v))) ? parseFloat(v) : 0;
+    const debit   = safe(row[6]);
+    const credit  = safe(row[7]);
+    const balance = safe(row[8]);
+    const narr    = String(row[5]||'').toUpperCase();
+
+    if (credit) totalCredits += credit;
+    if (debit)  totalDebits  += debit;
+    if (balance) lastBalance = balance;
+
+    if (!debit) continue;
+    // Categorize
+    if (narr.includes('MONTHLY SALARY') || narr.includes('LATE SALARY')) cats.salaries += debit;
+    else if (narr.includes('EL CAFE') || narr.includes('SYRUP'))          cats.coffee   += debit;
+    else if (narr.includes('FOOD') || narr.includes('SWEET SALT') || narr.includes('DESSERTS') || narr.includes('HISTORIA') || narr.includes('FEN AL TAZIEEN') || narr.includes('ICE CREAM')) cats.food += debit;
+    else if (narr.includes('LULU') || narr.includes('PROPACK') || narr.includes('NEW FAR')) cats.grocery += debit;
+    else if (narr.includes('AL KAYS') || narr.includes('KAYS INTERNATIONAL')) cats.pos_fees += debit;
+    else if (narr.includes('MARKETING')) cats.marketing += debit;
+    else if (narr.includes('CROWN MUSCAT') || narr.includes('COFFEE MACHINE') || narr.includes('CHARGER')) cats.equipment += debit;
+    else if (narr.includes('SALARY PROCESSING') || narr.includes('REVERSAL')) cats.bank += debit;
+    else {
+      const label = narr.includes('BONUS')?'Bonuses':narr.includes('SWIFT')?'SWIFT Charges':narr.includes('VAT')?'VAT Payment':narr.includes('TICKET')?'Travel/Tickets':'Other';
+      nonrecurring[label] = (nonrecurring[label]||0) + debit;
+    }
+  }
+
+  const opex = Object.fromEntries(Object.entries(cats).map(([k,v])=>[k,+v.toFixed(2)]));
+  opex.nonrecurring = Object.fromEntries(Object.entries(nonrecurring).map(([k,v])=>[k,+v.toFixed(2)]));
+  opex.total = +totalDebits.toFixed(2);
+
+  return { month: monthName, credits: +totalCredits.toFixed(2), debits: +totalDebits.toFixed(2),
+           closing_balance: +lastBalance.toFixed(2), opex };
+}
+
+// ── MERGE INTO DASHBOARD ─────────────────────────────────────────────────
+function mergeCoffeeSale(result) {
+  const { month, daily, monthly } = result;
+
+  // Merge daily records
+  const existingDates = new Set(DAILY.filter(d=>d.month===month).map(d=>d.date));
+  for (const d of daily) {
+    if (!existingDates.has(d.date)) DAILY.push(d);
+  }
+  // Sort DAILY by date
+  DAILY.sort((a,b) => a.date < b.date ? -1 : 1);
+
+  // Upsert monthly
+  MONTHLY[month] = monthly;
+
+  // Add to MONTHS array if new
+  if (!MONTHS.includes(month)) {
+    MONTHS.push(month);
+    MONTHS.sort((a,b) => MONTH_NAMES_ALL.indexOf(a) - MONTH_NAMES_ALL.indexOf(b));
+    rebuildFilterTabs();
+  }
+  return `☕ ${month}: ${daily.length} days, OMR ${monthly.total}`;
+}
+
+function mergePOS(result) {
+  const { records, months } = result;
+  for (const [date, rec] of Object.entries(records)) {
+    const day = DAILY.find(d => d.date === date);
+    if (day) { day.sub_total = rec.sub_total; day.discount = rec.discount; }
+  }
+  for (const month of months) {
+    if (MONTHLY[month]) {
+      MONTHLY[month].hasPOS = true;
+      const mDays = DAILY.filter(d => d.month === month);
+      MONTHLY[month].discount  = +mDays.reduce((s,d)=>s+d.discount,0).toFixed(2);
+      MONTHLY[month].sub_total = +mDays.reduce((s,d)=>s+d.sub_total,0).toFixed(2);
+    }
+  }
+  return `🧾 POS discounts merged: ${months.join(', ')}`;
+}
+
+function mergeBank(result) {
+  const { month, opex, closing_balance } = result;
+  if (!month) return '🏦 Bank: could not detect month from filename';
+  OPEX[month] = opex;
+  BANK_BALANCE[month] = closing_balance;
+  return `🏦 ${month}: debits OMR ${result.debits}, balance OMR ${closing_balance}`;
+}
+
+function rebuildFilterTabs() {
+  const bar = document.querySelector('.filter-bar');
+  if (!bar) return;
+  bar.innerHTML = '<span class="fl">Month</span><button class="tab active" onclick="setMonth(\'All\')">All</button>' +
+    MONTHS.map(m=>`<button class="tab" onclick="setMonth('${m}')">${m}</button>`).join('');
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem('peak_daily',   JSON.stringify(DAILY));
+    localStorage.setItem('peak_monthly', JSON.stringify(MONTHLY));
+    localStorage.setItem('peak_opex',    JSON.stringify(OPEX));
+    localStorage.setItem('peak_balance', JSON.stringify(BANK_BALANCE));
+    localStorage.setItem('peak_months',  JSON.stringify(MONTHS));
+  } catch(e) { console.warn('localStorage save failed:', e); }
+}
+
+// ── PROCESS ──────────────────────────────────────────────────────────────
+async function processFiles() {
+  if (typeof XLSX === 'undefined') {
+    alert('The spreadsheet library is still loading — please wait a moment and try again.');
+    return;
+  }
+  const btn = document.getElementById('btn-process');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.textContent = 'Processing…';
+
+  const messages = [];
+  const errors   = [];
+
+  for (let i = 0; i < pendingFiles.length; i++) {
+    const { file, type } = pendingFiles[i];
+    const statusEl = document.getElementById(`fs-${i}`);
+    statusEl.textContent = '⏳';
+    statusEl.className = 'file-status pending';
+
+    try {
+      const buf = await file.arrayBuffer();
+      const wb  = XLSX.read(buf, { type: 'array', cellDates: false });
+
+      if (type === 'coffee_sale') {
+        const result = parseCoffeeSale(wb, file.name);
+        if (result) { messages.push(mergeCoffeeSale(result)); statusEl.textContent='✓ Done'; statusEl.className='file-status ok'; }
+        else { throw new Error('No data rows found. Check column layout.'); }
+
+      } else if (type === 'pos_summary') {
+        const result = parsePOSSummary(wb);
+        if (Object.keys(result.records).length) { messages.push(mergePOS(result)); statusEl.textContent='✓ Done'; statusEl.className='file-status ok'; }
+        else { throw new Error('No POS records found.'); }
+
+      } else if (type === 'bank_statement') {
+        const result = parseBankStatement(wb);
+        messages.push(mergeBank(result)); statusEl.textContent='✓ Done'; statusEl.className='file-status ok';
+
+      } else {
+        throw new Error('Unknown file type. Rename it to include "Coffee Sale", "POS Sales Summary", or "OpTransactionHistory".');
+      }
+    } catch(e) {
+      errors.push(`${file.name}: ${e.message}`);
+      statusEl.textContent = '✗ Error';
+      statusEl.className = 'file-status err';
+    }
+  }
+
+  // Re-render everything
+  saveToStorage();
+  renderAll();
+  rebuildFilterTabs();
+
+  // Update badge
+  const badge = document.getElementById('data-badge');
+  if (badge) badge.textContent = `Live Data · ${MONTHS.length} Months`;
+
+  // Show result
+  const resEl = document.getElementById('upload-result');
+  resEl.style.display = 'block';
+  if (errors.length === 0) {
+    resEl.className = 'upload-result success';
+    resEl.innerHTML = '<strong>✓ Dashboard updated successfully</strong><br>' + messages.join('<br>');
+  } else {
+    resEl.className = 'upload-result error';
+    resEl.innerHTML = (messages.length ? '<strong>Partial success:</strong><br>' + messages.join('<br>') + '<br><br>' : '') +
+                      '<strong>Errors:</strong><br>' + errors.join('<br>');
+  }
+
+  btn.textContent = 'Process Files';
+  btn.classList.remove('loading');
+  btn.disabled = false;
+}
+
+// ── EXPORT ONE PDF PER MONTH ─────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function exportMonthlyPDFs() {
+  if (typeof html2canvas === 'undefined' || !window.jspdf) {
+    alert('PDF export libraries are still loading — please wait a moment and try again.');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const btn = document.getElementById('export-all-btn');
+  const origLabel = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating…'; }
+
+  // Remember current UI state so we can restore it when done.
+  const prevMonth = currentMonth;
+  const prevView = (document.querySelector('.view-tab.active') || {}).dataset ? document.querySelector('.view-tab.active').dataset.view : 'overview';
+  const prevTableBtn = document.querySelector('.mpick.active');
+  const prevTableMonth = prevTableBtn ? prevTableBtn.dataset.m : MONTHS[0];
+  const prevPage = document.getElementById('page-sales').style.display !== 'none' ? 'sales' : 'spending';
+
+  setPage('sales');
+  const wasAnimation = Chart.defaults.animation;
+  Chart.defaults.animation = false;
+
+  const views = [
+    { id: 'sales-view-overview',  view: 'overview',  label: 'Overview' },
+    { id: 'sales-view-revenue',   view: 'revenue',   label: 'Revenue Charts' },
+    { id: 'sales-view-discounts', view: 'discounts', label: 'POS Discount Analysis' },
+    { id: 'sales-view-log',       view: 'log',       label: 'Daily Transaction Log' }
+  ];
+
+  try {
+    for (const month of MONTHS) {
+      setMonth(month);
+      await sleep(60);
+
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 8;
+      let firstPage = true;
+
+      for (const v of views) {
+        setSalesView(v.view);
+        if (v.view === 'log') renderTable(month);
+        await sleep(150);
+
+        const el = document.getElementById(v.id);
+        if (!el) continue;
+
+        const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#f5f5f4', useCORS: true });
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+        const imgW = pageW - margin * 2;
+        const imgH = canvas.height * imgW / canvas.width;
+
+        if (!firstPage) doc.addPage();
+        firstPage = false;
+
+        doc.setFontSize(13);
+        doc.setTextColor(26, 58, 42);
+        doc.text(`The Peak Coffee Shop — ${month} 2026`, margin, 12);
+        doc.setFontSize(9);
+        doc.setTextColor(120, 110, 95);
+        doc.text(v.label, margin, 18);
+
+        const availH = pageH - 22 - margin;
+        if (imgH > availH) {
+          const scale = availH / imgH;
+          doc.addImage(imgData, 'JPEG', margin, 22, imgW * scale, availH);
+        } else {
+          doc.addImage(imgData, 'JPEG', margin, 22, imgW, imgH);
+        }
+      }
+
+      doc.save(`ThePeak_${month}_2026.pdf`);
+      await sleep(350); // stagger downloads so the browser doesn't block them
+    }
+  } finally {
+    Chart.defaults.animation = wasAnimation;
+    setMonth(prevMonth);
+    setSalesView(prevView || 'overview');
+    renderTable(prevTableMonth);
+    setPage(prevPage);
+    if (btn) { btn.disabled = false; btn.textContent = origLabel || '⬇ Export Each Month (PDF)'; }
+  }
+}
+
+// ── LOAD FROM STORAGE ON PAGE INIT ───────────────────────────────────────
+(function loadSavedData() {
+  try {
+    const d = localStorage.getItem('peak_daily');
+    const m = localStorage.getItem('peak_monthly');
+    const o = localStorage.getItem('peak_opex');
+    const b = localStorage.getItem('peak_balance');
+    const mo = localStorage.getItem('peak_months');
+    if (d) { const parsed = JSON.parse(d); parsed.forEach(r => { if (!DAILY.find(x=>x.date===r.date)) DAILY.push(r); }); DAILY.sort((a,b2)=>a.date<b2.date?-1:1); }
+    if (m) Object.assign(MONTHLY, JSON.parse(m));
+    if (o) Object.assign(OPEX, JSON.parse(o));
+    if (b) Object.assign(BANK_BALANCE, JSON.parse(b));
+    if (mo) { const saved = JSON.parse(mo); saved.forEach(mn => { if (!MONTHS.includes(mn)) MONTHS.push(mn); }); MONTHS.sort((a,b2)=>MONTH_NAMES_ALL.indexOf(a)-MONTH_NAMES_ALL.indexOf(b2)); }
+  } catch(e) {}
+})();
+</script>
+
+</body>
+</html>
